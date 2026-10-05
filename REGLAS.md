@@ -46,7 +46,7 @@ Orden de resolución de una semana:
 
 | # | Regla | Valor | Estado |
 |---|---|---|---|
-| 10 | Efecto de cada decisión | Ver tabla | A calibrar |
+| 10 | Efecto de cada decisión | Ver tabla | Calibrada en Fase 1 |
 | 11 | HOR tras cada parcial | Se reinician a 0 en cada asignatura | Cerrada |
 | 12 | Recuperación pasiva de estrés | 0 por semana | A calibrar |
 | 13 | Zonas de estrés | Ver tabla | Cerrada |
@@ -56,11 +56,11 @@ Efecto de una decisión sobre **una** asignatura:
 
 | Decisión | HOR | ENT | Estrés |
 |---|---|---|---|
-| Estudio Intensivo | +12 | 0 | +4 |
-| Cursada Balanceada | +6 | +1 | +1 |
-| Priorizar Salud Mental | 0 | 0 | −5 |
+| Estudio Intensivo | +12 | 0 | +5 |
+| Cursada Balanceada | +6 | +1 | +2 |
+| Priorizar Salud Mental | 0 | 0 | −6 |
 
-- El estrés de la semana es la suma de las decisiones de todas las asignaturas. Con 4 asignaturas va de −20 (todas en salud) a +16 (todas en intensivo).
+- El estrés de la semana es la suma de las decisiones de todas las asignaturas. Con 4 asignaturas va de −24 (todas en salud) a +20 (todas en intensivo).
 - Cursar menos asignaturas genera menos estrés: la cantidad funciona como nivel de dificultad.
 - En semana de parcial no hay entrega: Cursada Balanceada da 0 ENT.
 
@@ -116,11 +116,12 @@ OVR = 5 · promedio_general − 5 · (asignaturas sin regularidad)  (escala 0–
 | 25 | Disparo y rearme | Se dispara al cruzar 80 hacia arriba; se rearma al bajar de 60 | Cerrada |
 | 26 | Opciones | Forzar, Reposo forzado, Abandono | Cerrada |
 | 27 | Coste de forzar | Cada semana que empieza con estrés ≥ 80 hay 25 % de colapso | A calibrar |
-| 28 | Coste del reposo forzado | −40 de estrés; la semana siguiente se pierde | A calibrar |
+| 28 | Coste del reposo forzado | −40 de estrés; la semana en curso se anula | Calibrada en Fase 1 |
 | 29 | Crisis en semana de parcial | Los parciales se rinden igual, tras resolver la crisis | Cerrada |
 
 - **Colapso:** la semana se pierde en todas las asignaturas. No hay decisiones, no se suman HOR ni ENT y el estrés no cambia.
-- **Semana perdida por reposo:** igual que un colapso, pero el estrés ya bajó 40.
+- **Reposo forzado:** se anulan las decisiones de la semana en curso (se pierden las HOR y entregas que acababan de sumarse) y el estrés baja 40.
+- Si una semana perdida o anulada es de parcial, el parcial se rinde igual con las horas acumuladas hasta entonces.
 - **Abandono:** termina la partida con el final Abandono. Requiere confirmación.
 - Mientras la crisis no se rearme, no vuelve a dispararse aunque el estrés siga por encima de 80.
 - El retiro de una asignatura y el semestre sabático quedan fuera del MVP y entran en la Fase 3.
@@ -141,12 +142,17 @@ Prioridad al evaluar el final: Abandono, Beca, Aprobado, Aprobado parcial y, en 
 
 ## Criterios de balance para la Fase 1
 
-Con 10 000 partidas simuladas por estrategia y 4 asignaturas:
+Con 10 000 partidas simuladas por estrategia y 4 asignaturas (`npm run sim`):
 
 - Ninguna estrategia de un solo botón (la misma decisión en todas las asignaturas, todas las semanas) obtiene Beca.
 - La estrategia aleatoria termina en Aprobado o Beca menos de la mitad de las veces.
 - Existe al menos una estrategia mixta que llega a Beca.
 
-## Pendiente de confirmar
+Los tres se cumplen con los valores actuales. Cambios hechos durante la calibración:
 
-Nada. Todas las reglas están cerradas o a calibrar en la Fase 1.
+- **Regla 10:** el estrés por decisión pasó de +4 / +1 / −5 a +5 / +2 / −6. Con los valores originales, Cursada Balanceada todas las semanas aprobaba siempre y sin crisis hasta la semana 15.
+- **Regla 28:** el reposo anulaba la semana siguiente; ahora anula la semana en curso. Antes, un reposo en la semana 15 era gratis porque no quedaba semana que perder.
+
+## Pendiente
+
+- [ ] Que otra persona lea este documento y explique cómo se gana y cómo se pierde (puerta de salida de la Fase 0, aplazada).

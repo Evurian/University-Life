@@ -37,9 +37,9 @@ export const BALANCE = {
 
   // Decisiones: efecto sobre una asignatura (10)
   decisiones: {
-    intensivo: { nombre: 'Estudio Intensivo', hor: 12, ent: 0, estres: 4 },
-    balanceada: { nombre: 'Cursada Balanceada', hor: 6, ent: 1, estres: 1 },
-    salud: { nombre: 'Priorizar Salud Mental', hor: 0, ent: 0, estres: -5 },
+    intensivo: { nombre: 'Estudio Intensivo', hor: 12, ent: 0, estres: 5 },
+    balanceada: { nombre: 'Cursada Balanceada', hor: 6, ent: 1, estres: 2 },
+    salud: { nombre: 'Priorizar Salud Mental', hor: 0, ent: 0, estres: -6 },
   } satisfies Record<DecisionId, Decision>,
 
   // Zonas de estrés (13, 14, 16)
