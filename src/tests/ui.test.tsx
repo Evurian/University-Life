@@ -73,12 +73,14 @@ describe('interfaz', () => {
     useJuego.getState().nueva(4, 1)
     render(<App />)
     const fila = screen.getByRole('group', { name: 'Cálculo' })
-    expect(fila.textContent).toContain('Nota estimada del próximo parcial: 5.0')
+    expect(fila.textContent).toContain('5.0')
     fireEvent.click(within(fila).getByRole('button', { name: 'Intensivo' }))
     // 13.2 h en zona verde: 4 + 16 · (13.2 / 40)^0.7 + 1
-    expect(fila.textContent).toContain('→ 12.4')
+    expect(fila.textContent).toContain('5.0 → 12.4')
+    fireEvent.click(within(fila).getByRole('button', { name: 'Balanceada' }))
+    expect(fila.textContent).toContain('0 / 9 → 1')
     fireEvent.click(within(fila).getByRole('button', { name: 'Salud' }))
-    expect(fila.textContent).toContain('→ 5.0')
+    expect(fila.textContent).toContain('5.0 → 5.0')
   })
 
   it('un doble clic en confirmar avanza una sola semana', () => {
@@ -91,15 +93,36 @@ describe('interfaz', () => {
     expect(useJuego.getState().estado?.historial).toHaveLength(1)
   })
 
-  it('muestra qué pasó tras cerrar la semana', () => {
+  it('una semana normal no genera aviso; un parcial muestra sus notas', () => {
     useJuego.getState().nueva(4, 1)
     render(<App />)
+    for (let semana = 1; semana <= 4; semana++) {
+      clic('Balanceada en todas')
+      fireEvent.click(confirmar())
+      expect(screen.queryByRole('region', { name: 'Qué pasó' })).toBeNull()
+    }
     clic('Balanceada en todas')
     fireEvent.click(confirmar())
+
     const resumen = screen.getByRole('region', { name: 'Qué pasó' })
-    expect(resumen.textContent).toContain('Semana 1.')
-    expect(resumen.textContent).toContain('Cálculo: Balanceada')
-    expect(resumen.textContent).toContain('28 %')
+    expect(resumen.textContent).toContain('Parcial 1')
+    expect(within(resumen).getAllByRole('row')).toHaveLength(1 + 4)
+    const fila = screen.getByRole('group', { name: 'Cálculo' })
+    expect(fila.textContent).toContain('Parciales:')
+  })
+
+  it('el calendario marca la semana en curso y las ya cerradas', () => {
+    useJuego.getState().nueva(4, 1)
+    render(<App />)
+    clic('Salud en todas')
+    fireEvent.click(confirmar())
+    const semanas = within(screen.getByRole('list', { name: /Calendario/ })).getAllByRole(
+      'listitem',
+    )
+    expect(semanas).toHaveLength(16)
+    expect(semanas[0]?.getAttribute('aria-label')).toContain('cerró con estrés 0 %, zona Verde')
+    expect(semanas[1]?.getAttribute('aria-current')).toBe('step')
+    expect(semanas[4]?.textContent).toContain('P1')
   })
 
   it('avisa antes de confirmar una semana que provoca crisis', () => {

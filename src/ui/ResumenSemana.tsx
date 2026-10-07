@@ -1,37 +1,31 @@
 import { parcialDeSemana, zonaDe, type Estado, type RegistroSemana } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { useJuego } from '../store/juego.ts'
-import { CRISIS, DECISIONES_CORTAS, n1, ZONAS } from './textos.ts'
+import { conSigno, n1, ZONAS } from './textos.ts'
+
+/** Solo merece aviso lo que el termómetro y la tabla no cuentan por sí solos. */
+const esNotable = (r: RegistroSemana) => r.perdida !== null || r.crisis !== null || r.notas !== null
 
 function Registro({ registro, estado }: { registro: RegistroSemana; estado: Estado }) {
   const zona = zonaDe(registro.estres)
-  const modificador = BALANCE.zonas[zona].modParcial
   return (
     <li>
       <strong>Semana {registro.semana}.</strong>{' '}
-      {registro.perdida === 'colapso' &&
-        'Colapsaste por el estrés y perdiste la semana entera: sin horas ni entregas.'}
+      {registro.perdida === 'colapso' && 'Colapsaste por el estrés: semana perdida.'}
       {registro.perdida === 'reposo' &&
         `Reposo forzado: la semana se anuló y el estrés bajó ${BALANCE.crisis.alivioReposo} puntos.`}
-      {registro.perdida === null &&
-        registro.decisiones &&
-        registro.decisiones
-          .map((d, i) => `${estado.asignaturas[i]?.nombre}: ${DECISIONES_CORTAS[d]}`)
-          .join(' · ')}
-      {registro.crisis === 'forzar' && ` ${CRISIS.forzar.titulo}: seguiste pese a la crisis.`}{' '}
-      Estrés al cierre: {registro.estres} % (zona {ZONAS[zona]}).
+      {registro.crisis === 'forzar' && 'Seguiste pese a la crisis.'}
       {registro.notas && registro.detalle && (
         <table className="notas">
           <caption>
-            Parcial {parcialDeSemana(registro.semana) + 1}, rendido en zona {ZONAS[zona]} (
-            {modificador > 0 ? `+${modificador}` : modificador} a la nota)
+            Parcial {parcialDeSemana(registro.semana) + 1} · rendido en zona {ZONAS[zona]} (
+            {conSigno(BALANCE.zonas[zona].modParcial)} a la nota)
           </caption>
           <thead>
             <tr>
               <th scope="col">Asignatura</th>
-              <th scope="col">Horas del tramo</th>
+              <th scope="col">Horas</th>
               <th scope="col">Nota</th>
-              <th scope="col">Observación</th>
             </tr>
           </thead>
           <tbody>
@@ -43,10 +37,10 @@ function Registro({ registro, estado }: { registro: RegistroSemana; estado: Esta
                   <td>
                     {n1(detalle.hor)} / {BALANCE.nota.horObjetivo}
                   </td>
-                  <td>{n1(nota)}</td>
                   <td>
-                    {!detalle.rendido && 'No rendido: sin regularidad'}
-                    {detalle.bloqueo && 'Bloqueo mental: nota a la mitad'}
+                    <strong>{n1(nota)}</strong>
+                    {!detalle.rendido && ' · no rendido, sin regularidad'}
+                    {detalle.bloqueo && ' · bloqueo mental, nota a la mitad'}
                   </td>
                 </tr>
               )
@@ -59,13 +53,14 @@ function Registro({ registro, estado }: { registro: RegistroSemana; estado: Esta
 }
 
 export function ResumenSemana({ estado }: { estado: Estado }) {
-  const resumen = useJuego((s) => s.resumen)
-  if (resumen.length === 0) return null
+  const notables = useJuego((s) => s.resumen).filter(esNotable)
+  if (notables.length === 0) return null
   return (
-    <section className="resumen" aria-label="Qué pasó">
+    // La clave hace que el aviso vuelva a entrar animado cada semana.
+    <section key={estado.semana} className="panel resumen" aria-label="Qué pasó">
       <h2>Qué pasó</h2>
       <ul>
-        {resumen.map((registro) => (
+        {notables.map((registro) => (
           <Registro key={registro.semana} registro={registro} estado={estado} />
         ))}
       </ul>

@@ -1,12 +1,8 @@
-import {
-  notaEstimada,
-  promedioProvisional,
-  regularidadDe,
-  type Estado,
-} from '../core/simulacion.ts'
+import { promedioProvisional, type Estado } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { BarraEstres } from './BarraEstres.tsx'
-import { n1, REGULARIDAD } from './textos.ts'
+import { n1 } from './textos.ts'
+import { Valor } from './Valor.tsx'
 
 export function PanelAlumno({ estado }: { estado: Estado }) {
   const promedios = estado.asignaturas
@@ -14,62 +10,52 @@ export function PanelAlumno({ estado }: { estado: Estado }) {
     .filter((p): p is number => p !== null)
   const general = promedios.length ? promedios.reduce((a, b) => a + b, 0) / promedios.length : null
 
+  // En plena crisis la semana aún no se cerró: el último registro es el de la semana anterior.
+  const cierres = estado.historial
+  const anterior = estado.fase === 'crisis' ? cierres.at(-1) : cierres.at(-2)
+  const previo =
+    estado.fase === 'crisis' || cierres.length
+      ? (anterior?.estres ?? BALANCE.estresInicial)
+      : undefined
+
   return (
-    <aside className="panel" aria-label="Estado del alumno">
-      <h2>Tu cuatrimestre</h2>
+    <aside className="panel estado" aria-label="Estado del alumno">
+      <BarraEstres estres={estado.estres} previo={previo} />
+      {!estado.crisisArmada && (
+        <p className="nota">Sin nueva crisis hasta bajar de {BALANCE.crisis.umbralRearme} %.</p>
+      )}
+
       <p className="ovr">
-        <span className="ovr-valor">
+        <Valor className="ovr-valor">
           {general === null ? '—' : Math.round(BALANCE.ovr.factorPromedio * general)}
-        </span>
+        </Valor>
         <span>
-          OVR provisional
+          Rendimiento
           <br />
-          <small>
-            {general === null
-              ? 'Aún no rendiste ningún parcial'
-              : `Promedio ${n1(general)} en los parciales rendidos`}
-          </small>
+          <small>{general === null ? 'Sin parciales aún' : `Promedio ${n1(general)} / 20`}</small>
         </span>
       </p>
 
-      <BarraEstres estres={estado.estres} />
-      {!estado.crisisArmada && (
-        <p className="nota">
-          Ya tuviste una crisis: no habrá otra hasta que el estrés baje de{' '}
-          {BALANCE.crisis.umbralRearme}.
-        </p>
-      )}
-
-      <h3>Asignaturas</h3>
-      <ul className="asignaturas">
-        {estado.asignaturas.map((a) => {
-          const regularidad = regularidadDe(a, estado.semana)
-          return (
-            <li key={a.nombre}>
-              <strong>{a.nombre}</strong>
-              <dl>
-                <dt>Horas del tramo</dt>
-                <dd>
-                  {n1(a.horTramo)} / {BALANCE.nota.horObjetivo}
-                </dd>
-                <dt>Nota estimada</dt>
-                <dd>{n1(notaEstimada(a.horTramo, estado.estres))}</dd>
-                <dt>Entregas</dt>
-                <dd>
-                  {a.ent} / {BALANCE.entregasRegularidad} necesarias
-                </dd>
-                <dt>Parciales</dt>
-                <dd>
-                  {BALANCE.semanasParcial
-                    .map((_, i) => (a.notas[i] === undefined ? '—' : n1(a.notas[i])))
-                    .join(' · ')}
-                </dd>
-              </dl>
-              <span className={`etiqueta ${regularidad}`}>{REGULARIDAD[regularidad]}</span>
-            </li>
-          )
-        })}
-      </ul>
+      <details className="ayuda">
+        <summary>Cómo se juega</summary>
+        <ul>
+          <li>
+            <strong>Horas de estudio</strong> suben la nota del próximo parcial.
+          </li>
+          <li>
+            <strong>Entregas:</strong> necesitas {BALANCE.entregasRegularidad} por asignatura para
+            poder aprobarla.
+          </li>
+          <li>
+            <strong>Estrés:</strong> con más estrés estudias peor; al llegar a{' '}
+            {BALANCE.crisis.umbralDisparo} % entras en crisis.
+          </li>
+          <li>
+            Apruebas una asignatura con promedio {BALANCE.beca.parcialMin} o más sobre{' '}
+            {BALANCE.nota.max}.
+          </li>
+        </ul>
+      </details>
     </aside>
   )
 }

@@ -5,148 +5,159 @@ import {
   notaEstimada,
   parcialDeSemana,
   provocaCrisis,
+  regularidadDe,
   zonaDe,
   type Estado,
 } from '../core/simulacion.ts'
 import { BALANCE, type DecisionId } from '../data/balance.ts'
 import { useJuego } from '../store/juego.ts'
 import { conSigno, DECISIONES_CORTAS, n1, ZONAS } from './textos.ts'
+import { Valor } from './Valor.tsx'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 
+type Elegidas = (DecisionId | null)[]
+
 export function PanelDecision({ estado }: { estado: Estado }) {
   const decidir = useJuego((s) => s.decidir)
-  const [elegidas, setElegidas] = useState<(DecisionId | null)[]>(() =>
-    estado.asignaturas.map(() => null),
-  )
+  const vacias: Elegidas = estado.asignaturas.map(() => null)
+  // Las elecciones valen solo para la semana en que se hicieron.
+  const [seleccion, setSeleccion] = useState({ semana: estado.semana, elegidas: vacias })
+  const elegidas = seleccion.semana === estado.semana ? seleccion.elegidas : vacias
+  const fijar = (nuevas: Elegidas) => setSeleccion({ semana: estado.semana, elegidas: nuevas })
+
   const bloqueado = estado.fase !== 'decision'
   const completas = elegidas.filter((d): d is DecisionId => d !== null)
   const lista = completas.length === elegidas.length
   const esParcial = parcialDeSemana(estado.semana) !== -1
-
   const previsto = estresPrevisto(estado, completas)
   const zonaPrevista = zonaDe(previsto)
 
-  const elegir = (indice: number, decision: DecisionId) =>
-    setElegidas((actual) => actual.map((d, i) => (i === indice ? decision : d)))
-
   return (
-    <section aria-label="Decisiones de la semana">
-      <h2>¿Qué haces esta semana?</h2>
+    <section className="panel" aria-label="Decisiones de la semana">
+      <h2>
+        <span className={`paso ${lista ? 'hecho' : 'activo'}`}>1</span>
+        Elige qué hacer en cada asignatura
+      </h2>
       {esParcial && (
-        <p className="aviso">
-          Semana de parcial: no hay entrega y se rinde al cerrar la semana, con el estrés que te
-          quede.
-        </p>
+        <p className="aviso">Semana de parcial: se rinde al confirmar y no hay entrega.</p>
       )}
 
-      <p className="nota">
-        Las horas de estudio suben la nota del próximo parcial (el máximo se alcanza con{' '}
-        {BALANCE.nota.horObjetivo} en el tramo). Las entregas mantienen la regularidad. El estrés se
-        suma entre todas las asignaturas.
-      </p>
+      <ul className="leyenda" aria-label="Efecto de cada decisión esta semana">
+        {DECISIONES.map((d) => {
+          const efecto = efectoDecision(estado, d)
+          return (
+            <li key={d}>
+              <strong>{DECISIONES_CORTAS[d]}</strong>
+              <span>
+                {efecto.hor ? `+${n1(efecto.hor)} h` : 'sin estudio'}
+                {efecto.ent ? ' · entrega' : ''} · {conSigno(efecto.estres)} estrés
+              </span>
+            </li>
+          )
+        })}
+      </ul>
 
-      <table className="efectos">
-        <caption>Efecto de cada decisión sobre una asignatura, esta semana</caption>
-        <thead>
-          <tr>
-            <th scope="col">Decisión</th>
-            <th scope="col">Horas de estudio</th>
-            <th scope="col">Entrega</th>
-            <th scope="col">Estrés</th>
-          </tr>
-        </thead>
-        <tbody>
-          {DECISIONES.map((d) => {
-            const efecto = efectoDecision(estado, d)
-            return (
-              <tr key={d}>
-                <th scope="row">{BALANCE.decisiones[d].nombre}</th>
-                <td>{efecto.hor ? `+${n1(efecto.hor)}` : '—'}</td>
-                <td>{efecto.ent ? `+${efecto.ent}` : '—'}</td>
-                <td>{conSigno(efecto.estres)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className="tabla-asignaturas">
+        <div className="fila encabezado" aria-hidden="true">
+          <span>Asignatura</span>
+          <span>Nota estimada</span>
+          <span>Entregas</span>
+          <span>Esta semana</span>
+        </div>
 
-      <div className="fila-decision atajo">
-        <span>Todas</span>
-        <div className="botones">
-          {DECISIONES.map((d) => (
-            <button
-              key={d}
-              type="button"
-              disabled={bloqueado}
-              onClick={() => setElegidas(estado.asignaturas.map(() => d))}
-            >
-              {DECISIONES_CORTAS[d]} en todas
-            </button>
-          ))}
+        {estado.asignaturas.map((a, i) => {
+          const elegida = elegidas[i] ?? null
+          const efecto = elegida && efectoDecision(estado, elegida)
+          const regularidad = regularidadDe(a, estado.semana)
+          return (
+            <div key={a.nombre} className="fila" role="group" aria-label={a.nombre}>
+              <span className="nombre">
+                {a.nombre}
+                {a.notas.length > 0 && <small>Parciales: {a.notas.map(n1).join(' · ')}</small>}
+              </span>
+              <span className="dato" data-etiqueta="Nota estimada">
+                {n1(notaEstimada(a.horTramo, estado.estres))}
+                {efecto && (
+                  <>
+                    {' → '}
+                    <Valor className="nuevo">
+                      {n1(notaEstimada(a.horTramo + efecto.hor, previsto))}
+                    </Valor>
+                  </>
+                )}
+              </span>
+              <span className="dato" data-etiqueta="Entregas">
+                {a.ent} / {BALANCE.entregasRegularidad}
+                {efecto && efecto.ent > 0 && (
+                  <>
+                    {' → '}
+                    <Valor className="nuevo">{a.ent + efecto.ent}</Valor>
+                  </>
+                )}
+                {regularidad === 'asegurada' && <small className="bien">✓ regular</small>}
+                {regularidad === 'perdida' && <small className="mal">✕ sin regularidad</small>}
+              </span>
+              <span className="botones">
+                {DECISIONES.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={elegida === d ? 'elegida' : undefined}
+                    aria-pressed={elegida === d}
+                    disabled={bloqueado}
+                    onClick={() => fijar(elegidas.map((actual, j) => (j === i ? d : actual)))}
+                  >
+                    {DECISIONES_CORTAS[d]}
+                  </button>
+                ))}
+              </span>
+            </div>
+          )
+        })}
+
+        <div className="fila atajo">
+          <span className="nombre">Atajo</span>
+          <span className="botones">
+            {DECISIONES.map((d) => (
+              <button
+                key={d}
+                type="button"
+                disabled={bloqueado}
+                onClick={() => fijar(estado.asignaturas.map(() => d))}
+              >
+                {DECISIONES_CORTAS[d]} en todas
+              </button>
+            ))}
+          </span>
         </div>
       </div>
 
-      {estado.asignaturas.map((a, i) => {
-        const elegida = elegidas[i]
-        const ahora = notaEstimada(a.horTramo, estado.estres)
-        const despues =
-          elegida && notaEstimada(a.horTramo + efectoDecision(estado, elegida).hor, previsto)
-        return (
-          <div key={a.nombre} className="fila-decision" role="group" aria-label={a.nombre}>
-            <span>{a.nombre}</span>
-            <div className="botones">
-              {DECISIONES.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={elegidas[i] === d ? 'elegida' : undefined}
-                  aria-pressed={elegidas[i] === d}
-                  disabled={bloqueado}
-                  onClick={() => elegir(i, d)}
-                >
-                  {DECISIONES_CORTAS[d]}
-                </button>
-              ))}
-            </div>
-            <p className="estimacion">
-              Nota estimada del próximo parcial: {n1(ahora)}
-              {despues !== null && despues !== undefined && (
-                <>
-                  {' '}
-                  → <strong>{n1(despues)}</strong>
-                </>
-              )}
-            </p>
-          </div>
-        )
-      })}
-
-      <p className="nota">
-        La estimación supone rendir con el estrés que tendrías al cerrar esta semana; la nota real
-        varía hasta ±{BALANCE.nota.ruido}.
-      </p>
-
-      <p className="previsto" aria-live="polite">
-        Estrés: {estado.estres} % → <strong>{previsto} %</strong> (zona{' '}
-        <span className={`zona ${zonaPrevista}`}>{ZONAS[zonaPrevista]}</span>)
-        {!lista && ' · faltan asignaturas por decidir'}
-      </p>
+      <h2>
+        <span className={`paso ${lista ? 'activo' : ''}`}>2</span>
+        Confirma la semana
+      </h2>
+      <div className="cierre">
+        <p className="previsto" aria-live="polite">
+          Estrés: {estado.estres} % →{' '}
+          <Valor className={`zona ${zonaPrevista}`}>{`${previsto} %`}</Valor> (zona{' '}
+          {ZONAS[zonaPrevista]}){!lista && ' · faltan asignaturas por decidir'}
+        </p>
+        <button
+          type="button"
+          className={`principal ${lista && !bloqueado ? 'lista' : ''}`}
+          disabled={bloqueado || !lista}
+          onClick={() => decidir(completas)}
+        >
+          Confirmar semana
+        </button>
+      </div>
       {lista && provocaCrisis(estado, completas) && (
         <p className="aviso peligro" role="alert">
-          Con estas decisiones el estrés llega a {BALANCE.crisis.umbralDisparo} o más: entrarás en
+          Con estas decisiones el estrés llega a {BALANCE.crisis.umbralDisparo} % o más: entrarás en
           crisis.
         </p>
       )}
-
-      <button
-        type="button"
-        className="principal"
-        disabled={bloqueado || !lista}
-        onClick={() => decidir(completas)}
-      >
-        Confirmar semana
-      </button>
     </section>
   )
 }
