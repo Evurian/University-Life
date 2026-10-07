@@ -28,7 +28,26 @@ export interface RegistroSemana {
   estres: number
   /** Notas del parcial rendido esta semana, una por asignatura; null si no hubo parcial. */
   notas: number[] | null
+  /** Cómo se llegó a cada nota, en el mismo orden; null si no hubo parcial. */
+  detalle: DetalleNota[] | null
 }
+
+export interface DetalleNota {
+  /** Horas del tramo con las que se rindió. */
+  hor: number
+  bloqueo: boolean
+  /** false si no se rindió por falta de regularidad. */
+  rendido: boolean
+}
+
+/** Efecto de una decisión sobre una asignatura en la semana en curso. */
+export interface Efecto {
+  hor: number
+  ent: number
+  estres: number
+}
+
+export type Regularidad = 'asegurada' | 'posible' | 'perdida'
 
 export interface Estado {
   semilla: number
@@ -74,6 +93,52 @@ export function parcialDeSemana(semana: number): number {
   return (BALANCE.semanasParcial as readonly number[]).indexOf(semana)
 }
 
+/** Semanas con entrega que quedan desde `semana`, incluida. */
+export function entregasRestantes(semana: number): number {
+  let restantes = 0
+  for (let s = semana; s <= BALANCE.semanasConDecision; s++) {
+    if (parcialDeSemana(s) === -1) restantes++
+  }
+  return restantes
+}
+
+export function efectoDecision(e: Estado, decision: DecisionId): Efecto {
+  const d = BALANCE.decisiones[decision]
+  return {
+    hor: d.hor * BALANCE.zonas[zonaDe(e.estres)].multHor,
+    ent: parcialDeSemana(e.semana) === -1 ? d.ent : 0,
+    estres: d.estres,
+  }
+}
+
+/** Estrés con el que quedaría el alumno tras aplicar las decisiones de la semana. */
+export function estresPrevisto(e: Estado, decisiones: DecisionId[]): number {
+  const delta = decisiones.reduce((suma, d) => suma + BALANCE.decisiones[d].estres, 0)
+  return clamp(e.estres + delta - BALANCE.recuperacionPasiva, BALANCE.estresMin, BALANCE.estresMax)
+}
+
+export function provocaCrisis(e: Estado, decisiones: DecisionId[]): boolean {
+  return e.crisisArmada && estresPrevisto(e, decisiones) >= BALANCE.crisis.umbralDisparo
+}
+
+export function regularidadDe(a: Asignatura, semana: number): Regularidad {
+  if (a.ent >= BALANCE.entregasRegularidad) return 'asegurada'
+  return a.ent + entregasRestantes(semana) >= BALANCE.entregasRegularidad ? 'posible' : 'perdida'
+}
+
+/** Promedio ponderado de los parciales ya rendidos; null si aún no hay ninguno. */
+export function promedioProvisional(a: Asignatura): number | null {
+  if (a.notas.length === 0) return null
+  let suma = 0
+  let pesos = 0
+  a.notas.forEach((nota, i) => {
+    const peso = BALANCE.pesosParciales[i]!
+    suma += peso * nota
+    pesos += peso
+  })
+  return suma / pesos
+}
+
 export function notaParcial(
   horTramo: number,
   zona: ZonaId,
@@ -85,6 +150,11 @@ export function notaParcial(
   const bruta = n.base + n.rango * avance ** n.exponente + BALANCE.zonas[zona].modParcial + ruido
   const nota = clamp(bruta, n.min, n.max)
   return bloqueo ? nota / n.divisorBloqueo : nota
+}
+
+/** Nota esperada de un parcial con esas horas y ese estrés, sin ruido ni bloqueo. */
+export function notaEstimada(horTramo: number, estres: number): number {
+  return notaParcial(horTramo, zonaDe(estres), 0, false)
 }
 
 /** Redondea el promedio de una asignatura a entero; 0.5 sube. */
@@ -121,15 +191,11 @@ export function aplicarDecisiones(e: Estado, decisiones: DecisionId[]): Estado {
     throw new Error('Hace falta una decisión por asignatura')
   }
 
-  const mult = BALANCE.zonas[zonaDe(e.estres)].multHor
-  const hayEntrega = parcialDeSemana(e.semana) === -1
-  let delta = -BALANCE.recuperacionPasiva
   const asignaturas = e.asignaturas.map((a, i) => {
-    const d = BALANCE.decisiones[decisiones[i]!]
-    delta += d.estres
-    return { ...a, horTramo: a.horTramo + d.hor * mult, ent: a.ent + (hayEntrega ? d.ent : 0) }
+    const efecto = efectoDecision(e, decisiones[i]!)
+    return { ...a, horTramo: a.horTramo + efecto.hor, ent: a.ent + efecto.ent }
   })
-  const estres = clamp(e.estres + delta, BALANCE.estresMin, BALANCE.estresMax)
+  const estres = estresPrevisto(e, decisiones)
   const aplicado: Estado = { ...e, asignaturas, estres, decisionesEnCurso: decisiones }
 
   if (e.crisisArmada && estres >= BALANCE.crisis.umbralDisparo) {
@@ -150,6 +216,7 @@ export function resolverCrisis(e: Estado, opcion: OpcionCrisis): Estado {
       crisis: opcion,
       estres: e.estres,
       notas: null,
+      detalle: null,
     }
     return {
       ...e,
@@ -257,18 +324,21 @@ function registrar(
   const indice = parcialDeSemana(e.semana)
   let { rng, asignaturas } = e
   let notas: number[] | null = null
+  let detalle: DetalleNota[] | null = null
 
   if (indice !== -1) {
     const zona = zonaDe(e.estres)
     const esUltimo = indice === BALANCE.semanasParcial.length - 1
     notas = []
+    detalle = []
     asignaturas = asignaturas.map((a) => {
       let nota: number = BALANCE.notaParcialSinRegularidad
-      if (!esUltimo || a.ent >= BALANCE.entregasRegularidad) {
+      let bloqueo = false
+      const rendido = !esUltimo || a.ent >= BALANCE.entregasRegularidad
+      if (rendido) {
         let tirada: number
         ;[tirada, rng] = siguiente(rng)
         const ruido = (tirada * 2 - 1) * BALANCE.nota.ruido
-        let bloqueo = false
         if (zona === 'roja') {
           ;[tirada, rng] = siguiente(rng)
           bloqueo = tirada < BALANCE.nota.probBloqueo
@@ -276,6 +346,7 @@ function registrar(
         nota = notaParcial(a.horTramo, zona, ruido, bloqueo)
       }
       notas!.push(nota)
+      detalle!.push({ hor: a.horTramo, bloqueo, rendido })
       return { ...a, horTramo: 0, notas: [...a.notas, nota] }
     })
   }
@@ -287,6 +358,7 @@ function registrar(
     crisis,
     estres: e.estres,
     notas,
+    detalle,
   }
   const semana = e.semana + 1
   return {

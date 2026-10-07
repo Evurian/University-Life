@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   aplicarDecisiones,
   crearPartida,
+  efectoDecision,
+  entregasRestantes,
+  estresPrevisto,
+  notaEstimada,
   notaParcial,
+  promedioProvisional,
+  provocaCrisis,
+  regularidadDe,
   parcialDeSemana,
   redondearPromedio,
   resolverCrisis,
@@ -373,5 +380,68 @@ describe('resultado', () => {
   it('el abandono tiene prioridad sobre cualquier otro final', () => {
     const cuatro = [0, 1, 2, 3].map(() => asignatura([20, 20, 20]))
     expect(resultado(conAsignaturas(cuatro, { abandono: true })).final).toBe('abandono')
+  })
+})
+
+describe('ayudas para la interfaz', () => {
+  it('cuenta las entregas que quedan sin las semanas de parcial', () => {
+    expect(entregasRestantes(1)).toBe(12)
+    expect(entregasRestantes(5)).toBe(8)
+    expect(entregasRestantes(14)).toBe(1)
+    expect(entregasRestantes(15)).toBe(0)
+    expect(entregasRestantes(16)).toBe(0)
+  })
+
+  it('anticipa el efecto de una decisión con la zona y la semana actuales', () => {
+    expect(efectoDecision(nueva(), 'intensivo')).toEqual({ hor: 12 * 1.1, ent: 0, estres: 5 })
+    const parcialEnRoja = nueva(1, { semana: 5, estres: 90 })
+    expect(efectoDecision(parcialEnRoja, 'balanceada')).toEqual({ hor: 6 * 0.6, ent: 0, estres: 2 })
+  })
+
+  it('anticipa el estrés y la crisis igual que al aplicar las decisiones', () => {
+    const e = nueva(1, { estres: 72 })
+    const decisiones = todas('balanceada', e)
+    expect(estresPrevisto(e, decisiones)).toBe(80)
+    expect(provocaCrisis(e, decisiones)).toBe(true)
+    expect(aplicarDecisiones(e, decisiones).fase).toBe('crisis')
+    expect(provocaCrisis({ ...e, crisisArmada: false }, decisiones)).toBe(false)
+    expect(provocaCrisis(nueva(), todas('salud', e))).toBe(false)
+    expect(estresPrevisto(nueva(), todas('salud', e))).toBe(0)
+  })
+
+  it('clasifica la regularidad según las entregas hechas y las que quedan', () => {
+    expect(regularidadDe(asignatura([], 9), 10)).toBe('asegurada')
+    expect(regularidadDe(asignatura([], 0), 1)).toBe('posible')
+    expect(regularidadDe(asignatura([], 8), 14)).toBe('posible')
+    expect(regularidadDe(asignatura([], 7), 14)).toBe('perdida')
+    expect(regularidadDe(asignatura([], 8), 16)).toBe('perdida')
+  })
+
+  it('promedia solo los parciales rendidos', () => {
+    expect(promedioProvisional(asignatura([]))).toBeNull()
+    expect(promedioProvisional(asignatura([14]))).toBeCloseTo(14)
+    expect(promedioProvisional(asignatura([10, 20]))).toBeCloseTo(15)
+    expect(promedioProvisional(asignatura([10, 20, 15]))).toBeCloseTo(15)
+  })
+
+  it('guarda con qué horas se rindió cada parcial y si hubo bloqueo', () => {
+    const e = jugar(nueva(), 'balanceada', 5)
+    const registro = e.historial[4]!
+    expect(registro.detalle).toHaveLength(4)
+    expect(registro.detalle![0]).toMatchObject({ bloqueo: false, rendido: true })
+    expect(registro.detalle![0]!.hor).toBeGreaterThan(0)
+    expect(e.historial[3]!.detalle).toBeNull()
+
+    const sinEntregas = jugar(nueva(), 'salud')
+    expect(sinEntregas.historial[14]!.detalle![0]).toMatchObject({ rendido: false, bloqueo: false })
+  })
+})
+
+describe('nota estimada', () => {
+  it('es la nota del parcial sin ruido ni bloqueo, con la zona del estrés dado', () => {
+    expect(notaEstimada(0, 20)).toBe(5)
+    expect(notaEstimada(40, 50)).toBe(20)
+    expect(notaEstimada(40, 90)).toBe(15)
+    expect(notaEstimada(20, 50)).toBeCloseTo(notaParcial(20, 'amarilla', 0, false))
   })
 })

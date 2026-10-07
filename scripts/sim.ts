@@ -7,6 +7,7 @@
 import {
   aplicarDecisiones,
   crearPartida,
+  entregasRestantes,
   parcialDeSemana,
   resolverCrisis,
   resultado,
@@ -74,16 +75,13 @@ const adaptativa = (nombre: string, techo: number): Estrategia => ({
   unBoton: false,
   decidir: (e) => {
     const esParcial = parcialDeSemana(e.semana) !== -1
-    const entregasRestantes = BALANCE.semanasParcial.reduce(
-      (n, s) => (s >= e.semana ? n - 1 : n),
-      BALANCE.semanasConDecision - e.semana + 1,
-    )
+    const restantes = entregasRestantes(e.semana)
     let estres = e.estres
     const cabe = (d: DecisionId) => estres + BALANCE.decisiones[d].estres <= techo
     return e.asignaturas.map((a) => {
       const faltanEntregas = BALANCE.entregasRegularidad - a.ent
       let decision: DecisionId = 'salud'
-      if (!esParcial && faltanEntregas > 0 && faltanEntregas >= entregasRestantes - 1) {
+      if (!esParcial && faltanEntregas > 0 && faltanEntregas >= restantes - 1) {
         decision = 'balanceada'
       } else if (a.horTramo < BALANCE.nota.horObjetivo && cabe('intensivo')) {
         decision = 'intensivo'

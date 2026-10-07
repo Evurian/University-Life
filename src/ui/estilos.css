@@ -1,0 +1,434 @@
+/* Estilos funcionales del MVP: legibilidad y estado del juego. El pulido visual llega en la Fase 5. */
+
+:root {
+  --fondo: #f4f5f7;
+  --panel: #ffffff;
+  --texto: #1c2430;
+  --tenue: #5b6676;
+  --borde: #d5dae2;
+  --acento: #1f5fbf;
+  --verde: #2e8b57;
+  --amarilla: #c98a00;
+  --roja: #c0392b;
+  --espacio: 12px;
+
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 var(--espacio);
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 var(--espacio);
+}
+
+h3 {
+  font-size: 1rem;
+  margin: calc(var(--espacio) * 1.5) 0 var(--espacio);
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--acento);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--acento);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.principal {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 20px;
+}
+
+button.elegida {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.peligro {
+  border-color: var(--roja);
+  color: var(--roja);
+}
+
+.pantalla {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(var(--espacio) * 3) var(--espacio);
+}
+
+.pantalla fieldset {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  margin: calc(var(--espacio) * 2) 0;
+  padding: var(--espacio);
+}
+
+.opcion {
+  display: block;
+  padding: 4px 0;
+}
+
+.nota {
+  color: var(--tenue);
+  font-size: 0.9rem;
+}
+
+/* Dashboard */
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--espacio);
+  padding: var(--espacio);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: calc(var(--espacio) * 1.25);
+}
+
+.ovr {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio);
+  margin: 0 0 var(--espacio);
+}
+
+.ovr-valor {
+  font-size: 2.4rem;
+  font-weight: 700;
+  min-width: 2ch;
+}
+
+.ovr small {
+  color: var(--tenue);
+}
+
+/* Estrés */
+
+.zona {
+  font-weight: 700;
+}
+
+.zona.verde {
+  color: var(--verde);
+}
+
+.zona.amarilla {
+  color: var(--amarilla);
+}
+
+.zona.roja {
+  color: var(--roja);
+}
+
+.estres-texto {
+  margin: 0 0 6px;
+}
+
+.estres-barra {
+  position: relative;
+  display: flex;
+  height: 16px;
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.tramo.verde {
+  background: var(--verde);
+  border-radius: 4px 0 0 4px;
+}
+
+.tramo.amarilla {
+  background: var(--amarilla);
+}
+
+.tramo.roja {
+  background: var(--roja);
+  border-radius: 0 4px 4px 0;
+}
+
+.marca-crisis {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--texto);
+}
+
+.aguja {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 6px;
+  margin-left: -3px;
+  background: var(--panel);
+  border: 2px solid var(--texto);
+  border-radius: 3px;
+}
+
+.estres-escala {
+  position: relative;
+  height: 1.2em;
+  margin: 4px 0 var(--espacio);
+  font-size: 0.75rem;
+  color: var(--tenue);
+}
+
+.estres-escala span {
+  position: absolute;
+  white-space: nowrap;
+}
+
+/* Asignaturas */
+
+.asignaturas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio);
+}
+
+.asignaturas li {
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.asignaturas dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 6px 0;
+  font-size: 0.9rem;
+}
+
+.asignaturas dt {
+  color: var(--tenue);
+}
+
+.asignaturas dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.etiqueta {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.etiqueta.asegurada {
+  color: var(--verde);
+}
+
+.etiqueta.posible {
+  color: var(--tenue);
+}
+
+.etiqueta.perdida {
+  color: var(--roja);
+}
+
+/* Decisiones */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--espacio) 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+caption {
+  text-align: left;
+  color: var(--tenue);
+  padding-bottom: 4px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.fila-decision {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: var(--espacio);
+  padding: 6px 0;
+}
+
+.estimacion {
+  grid-column: 2;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.fila-decision.atajo {
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 6px;
+  padding-bottom: var(--espacio);
+  color: var(--tenue);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.previsto {
+  margin: var(--espacio) 0;
+}
+
+.aviso {
+  border-left: 4px solid var(--amarilla);
+  background: #fff8e6;
+  padding: 8px 10px;
+  margin: var(--espacio) 0;
+}
+
+.aviso.peligro {
+  border-left-color: var(--roja);
+  background: #fdecea;
+}
+
+.resumen {
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: var(--espacio);
+  margin-bottom: calc(var(--espacio) * 1.5);
+  background: var(--fondo);
+}
+
+.resumen ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+/* Calendario */
+
+.semanas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.semanas li {
+  display: grid;
+  grid-template-columns: 2.2em 1fr;
+  gap: 0 8px;
+  padding: 5px 8px;
+  border-left: 4px solid transparent;
+  border-bottom: 1px solid var(--borde);
+}
+
+.semanas li.parcial .semana-tipo {
+  font-weight: 700;
+}
+
+.semanas li.pasada {
+  color: var(--tenue);
+}
+
+.semanas li.actual {
+  border-left-color: var(--acento);
+  background: #eaf1fb;
+  color: var(--texto);
+}
+
+.semana-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--tenue);
+}
+
+.semana-dato {
+  grid-column: 2;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Crisis */
+
+.fondo-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espacio);
+  background: rgb(0 0 0 / 55%);
+}
+
+.modal {
+  max-width: 520px;
+  background: var(--panel);
+  border-radius: 8px;
+  border-top: 6px solid var(--roja);
+  padding: calc(var(--espacio) * 2);
+}
+
+.opciones-crisis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio);
+}
+
+.opciones-crisis p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: var(--tenue);
+}
