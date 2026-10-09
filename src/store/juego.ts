@@ -7,9 +7,9 @@ import {
   type OpcionCrisis,
   type RegistroSemana,
 } from '../core/simulacion.ts'
-import type { DecisionId } from '../data/balance.ts'
+import { BALANCE, type DecisionId } from '../data/balance.ts'
 
-export const NOMBRES_ASIGNATURAS = ['Cálculo', 'Programación', 'Física', 'Redacción']
+export const NOMBRES_ASIGNATURAS = BALANCE.asignaturas.map((a) => a.nombre)
 
 interface Juego {
   estado: Estado | null
@@ -36,7 +36,7 @@ export const useJuego = create<Juego>((set, get) => {
     estado: null,
     resumen: [],
     nueva: (cantidad, semilla = semillaAlAzar()) =>
-      set({ estado: crearPartida(semilla, NOMBRES_ASIGNATURAS.slice(0, cantidad)), resumen: [] }),
+      set({ estado: crearPartida(semilla, BALANCE.asignaturas.slice(0, cantidad)), resumen: [] }),
     decidir: (decisiones) => avanzar((e) => aplicarDecisiones(e, decisiones)),
     resolver: (opcion) => avanzar((e) => resolverCrisis(e, opcion)),
     salir: () => set({ estado: null, resumen: [] }),

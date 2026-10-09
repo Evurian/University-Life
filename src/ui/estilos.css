@@ -285,60 +285,155 @@ button.peligro {
 
 /* Calendario */
 
+.proximo {
+  margin: 2px 0 0;
+  color: var(--tenue);
+  white-space: nowrap;
+}
+
+.calendario li {
+  display: grid;
+}
+
 .calendario {
   display: grid;
   grid-template-columns: repeat(16, minmax(0, 1fr));
-  gap: 4px;
+  gap: 5px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.calendario li {
+.calendario .casilla {
   display: grid;
   justify-items: center;
-  padding: 4px 0 2px;
-  border-radius: 6px;
+  align-content: start;
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+  min-height: 86px;
+  padding: 5px 2px 3px;
   border: 1px solid var(--borde);
-  border-bottom-width: 5px;
+  border-bottom-width: 6px;
+  border-radius: 8px;
   background: var(--panel);
   color: var(--tenue);
+  font: inherit;
   transition:
     border-color 0.4s,
-    background-color 0.4s;
+    background-color 0.4s,
+    transform 0.15s;
+}
+
+.calendario button.casilla {
+  cursor: pointer;
+  color: var(--texto);
+}
+
+.calendario button.casilla:hover {
+  transform: translateY(-3px);
+  background: var(--acento-suave);
+}
+
+.calendario button.casilla[aria-pressed='true'] {
+  outline: 3px solid var(--acento);
+  outline-offset: 1px;
 }
 
 .calendario .dia {
+  font-size: 1.05rem;
   font-weight: 700;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .calendario .tipo {
-  min-height: 1.2em;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.calendario li.parcial {
+.calendario .marcas {
+  display: flex;
+  gap: 2px;
+  min-height: 9px;
+  align-items: center;
+}
+
+.calendario .perdida {
+  color: var(--roja);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.calendario .media {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendario li.parcial .casilla {
+  background: #fff6dd;
   color: var(--texto);
 }
 
-.calendario li.verde {
+.calendario li.verde .casilla {
   border-bottom-color: var(--verde);
 }
 
-.calendario li.amarilla {
+.calendario li.amarilla .casilla {
   border-bottom-color: var(--amarilla);
 }
 
-.calendario li.roja {
+.calendario li.roja .casilla {
   border-bottom-color: var(--roja);
 }
 
-.calendario li.actual {
+.calendario li.actual .casilla {
   border-color: var(--acento);
   background: var(--acento);
   color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 3px 8px rgb(31 95 191 / 35%);
+}
+
+.leyenda-calendario {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--tenue);
+}
+
+/* Puntos que identifican cada decisión, en el calendario y en las leyendas */
+
+.punto {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--decision);
+  background: var(--decision);
+}
+
+.punto.intensivo {
+  --decision: #1f5fbf;
+}
+
+.punto.balanceada {
+  --decision: #7a4fbf;
+}
+
+.punto.salud {
+  --decision: #6b7686;
+  background: transparent;
+}
+
+.calendario li.actual .punto {
+  --decision: #fff;
 }
 
 /* Estrés */
@@ -367,89 +462,53 @@ button.peligro {
   gap: var(--espacio);
 }
 
-.termometro-marco {
-  position: relative;
-  display: flex;
-  height: 240px;
-  /* Deja sitio a la etiqueta de crisis, que sobresale por la izquierda. */
-  padding-left: 62px;
+.cerebro {
+  flex: none;
+  width: 132px;
+  overflow: visible;
 }
 
-.termometro {
-  position: relative;
-  width: 32px;
-  height: 100%;
-  border: 2px solid var(--texto);
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--panel);
+.cerebro .banda {
+  opacity: 0.2;
 }
 
-.banda {
-  position: absolute;
-  left: 0;
-  right: 0;
-  opacity: 0.22;
+.cerebro .verde {
+  fill: var(--verde);
 }
 
-.banda.verde,
-.mercurio.verde {
-  background: var(--verde);
+.cerebro .amarilla {
+  fill: var(--amarilla);
 }
 
-.banda.amarilla,
-.mercurio.amarilla {
-  background: var(--amarilla);
+.cerebro .roja {
+  fill: var(--roja);
 }
 
-.banda.roja,
-.mercurio.roja {
-  background: var(--roja);
-}
-
-.mercurio {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.cerebro .nivel {
   transition:
-    height 0.6s cubic-bezier(0.3, 1.4, 0.5, 1),
-    background-color 0.6s ease;
+    transform 0.7s cubic-bezier(0.3, 1.4, 0.5, 1),
+    fill 0.6s ease;
 }
 
-.marca-crisis {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  margin-bottom: -1px;
-  background: var(--texto);
+.cerebro .contorno {
+  fill: none;
+  stroke: var(--texto);
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
-.termometro-crisis {
-  position: absolute;
-  left: 0;
-  width: 56px;
-  transform: translateY(50%);
-  text-align: right;
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
+.cerebro .surcos {
+  fill: none;
+  stroke: var(--texto);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.55;
 }
 
-.termometro-escala {
-  position: relative;
-  width: 2.2em;
-  margin-left: 6px;
-  font-size: 0.8rem;
-  color: var(--tenue);
-  font-variant-numeric: tabular-nums;
-}
-
-.termometro-escala span {
-  position: absolute;
-  left: 0;
-  transform: translateY(50%);
+.cerebro .linea-crisis {
+  stroke: var(--texto);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
 }
 
 .estres-lectura {
@@ -518,6 +577,7 @@ button.peligro {
 
 .leyenda li {
   display: grid;
+  gap: 2px;
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--fondo);
@@ -529,44 +589,32 @@ button.peligro {
   font-variant-numeric: tabular-nums;
 }
 
-.tabla-asignaturas {
+.tabla-cursos {
   display: grid;
+  gap: 10px;
   margin-bottom: calc(var(--espacio) * 1.5);
 }
 
-.fila {
+.curso {
   display: grid;
-  grid-template-columns: minmax(110px, 1.1fr) minmax(110px, 1fr) minmax(100px, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--borde);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
 }
 
-.fila.encabezado {
-  padding: 0 0 6px;
-  font-size: 0.85rem;
-  color: var(--tenue);
-}
-
-.fila.atajo {
-  border-bottom: 0;
-  color: var(--tenue);
-}
-
-.fila.atajo .botones {
-  grid-column: 2 / -1;
-  justify-content: flex-end;
-}
-
-.fila.atajo button {
-  min-height: 34px;
-  font-size: 0.9rem;
+.curso .botones {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .nombre {
   display: grid;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
@@ -577,7 +625,9 @@ button.peligro {
 }
 
 .dato {
-  font-size: 1.05rem;
+  display: grid;
+  gap: 2px;
+  font-size: 1.1rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -586,38 +636,83 @@ button.peligro {
   color: var(--acento);
 }
 
+.alerta {
+  color: #9a5b00;
+  font-weight: 700;
+}
+
+small.bien,
+small.mal {
+  font-weight: 700;
+}
+
+.trabajos::before {
+  content: 'Trabajos entregados';
+  font-size: 0.85rem;
+  color: var(--tenue);
+}
+
+.pips {
+  display: flex;
+  gap: 3px;
+}
+
+.pips i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1.5px solid var(--borde);
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+.pips i.hecho {
+  background: var(--verde);
+  border-color: var(--verde);
+}
+
+.pips i.previsto {
+  background: var(--acento-suave);
+  border-color: var(--acento);
+}
+
+.atajo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px;
+  color: var(--tenue);
+}
+
+.atajo .nombre {
+  font-size: 1rem;
+}
+
+.atajo button {
+  min-height: 34px;
+  font-size: 0.9rem;
+}
+
 .botones {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.fila[role='group'] .botones {
-  flex-wrap: nowrap;
-}
-
 @media (max-width: 700px) {
-  .fila.encabezado {
-    display: none;
-  }
-
-  .fila {
+  .curso {
     grid-template-columns: 1fr 1fr;
   }
 
-  .fila .nombre,
-  .fila .botones {
+  .curso .nombre {
     grid-column: 1 / -1;
   }
 
-  .fila[role='group'] .botones {
-    flex-wrap: wrap;
-  }
-
-  .dato::before {
-    content: attr(data-etiqueta) ': ';
-    font-size: 0.85rem;
-    color: var(--tenue);
+  .curso .botones,
+  .atajo {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -657,6 +752,26 @@ button.peligro {
 .resumen {
   border-left: 5px solid var(--acento);
   animation: entrar 0.4s ease-out;
+}
+
+.resumen h2 {
+  justify-content: space-between;
+}
+
+.cerrar {
+  min-height: 32px;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.decisiones-semana li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detalle p {
+  margin: 0 0 8px;
 }
 
 .resumen ul {

@@ -19,17 +19,17 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
       <p className="ovr">
         <span className="ovr-valor">{Math.round(r.ovr)}</span>
         <span>
-          OVR final
+          Rendimiento final
           <br />
           <small>Promedio general {n1(r.promedioGeneral)} sobre 20</small>
         </span>
       </p>
 
       <table className="notas">
-        <caption>Resultado por asignatura</caption>
+        <caption>Resultado por curso</caption>
         <thead>
           <tr>
-            <th scope="col">Asignatura</th>
+            <th scope="col">Curso</th>
             {BALANCE.semanasParcial.map((_, i) => (
               <th key={i} scope="col">
                 P{i + 1}
@@ -37,7 +37,7 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
             ))}
             <th scope="col">Promedio</th>
             <th scope="col">Final</th>
-            <th scope="col">Entregas</th>
+            <th scope="col">Trabajos</th>
             <th scope="col">Resultado</th>
           </tr>
         </thead>
@@ -55,7 +55,7 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
                 <td>
                   {datos.ent} / {BALANCE.entregasRegularidad}
                 </td>
-                <td>{a.aprobada ? 'Aprobada' : a.regular ? 'Desaprobada' : 'Sin regularidad'}</td>
+                <td>{a.aprobada ? 'Aprobado' : a.regular ? 'Desaprobado' : 'Faltaron trabajos'}</td>
               </tr>
             )
           })}
@@ -67,9 +67,10 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
         · Semilla: {estado.semilla}
       </p>
       <p className="nota">
-        Se aprueba con final {BALANCE.finalAprobatorio} o más y {BALANCE.entregasRegularidad}{' '}
-        entregas. La beca pide OVR {BALANCE.beca.ovrMin}, las {BALANCE.beca.asignaturasRequeridas}{' '}
-        asignaturas aprobadas y ningún parcial por debajo de {BALANCE.beca.parcialMin}.
+        Un curso se aprueba con final {BALANCE.finalAprobatorio} o más y{' '}
+        {BALANCE.entregasRegularidad} trabajos entregados. La beca pide rendimiento{' '}
+        {BALANCE.beca.ovrMin}, los {BALANCE.beca.asignaturasRequeridas} cursos aprobados y ningún
+        parcial por debajo de {BALANCE.beca.parcialMin}.
       </p>
 
       <button type="button" className="principal" onClick={salir}>

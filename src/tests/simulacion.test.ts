@@ -4,7 +4,9 @@ import {
   crearPartida,
   efectoDecision,
   entregasRestantes,
+  esRutina,
   estresPrevisto,
+  margenEntregas,
   notaEstimada,
   notaParcial,
   promedioProvisional,
@@ -19,12 +21,12 @@ import {
   type Estado,
 } from '../core/simulacion.ts'
 import { siguiente } from '../core/rng.ts'
-import type { DecisionId } from '../data/balance.ts'
+import { BALANCE, type DecisionId } from '../data/balance.ts'
 
-const NOMBRES = ['Cálculo', 'Programación', 'Física', 'Redacción']
+const CURSADAS = BALANCE.asignaturas
 
 const nueva = (semilla = 1, cambios: Partial<Estado> = {}): Estado => ({
-  ...crearPartida(semilla, NOMBRES),
+  ...crearPartida(semilla, CURSADAS),
   ...cambios,
 })
 
@@ -41,6 +43,7 @@ function jugar(e: Estado, decision: DecisionId, semanas = Infinity): Estado {
 
 const asignatura = (notas: number[], ent = 9): Asignatura => ({
   nombre: 'A',
+  horObjetivo: 40,
   horTramo: 0,
   ent,
   notas,
@@ -78,9 +81,9 @@ describe('crearPartida', () => {
   })
 
   it('rechaza menos de 2 o más de 4 asignaturas', () => {
-    expect(() => crearPartida(1, ['A'])).toThrow()
-    expect(() => crearPartida(1, ['A', 'B', 'C', 'D', 'E'])).toThrow()
-    expect(crearPartida(1, ['A', 'B']).asignaturas).toHaveLength(2)
+    expect(() => crearPartida(1, CURSADAS.slice(0, 1))).toThrow()
+    expect(() => crearPartida(1, [...CURSADAS, ...CURSADAS.slice(0, 1)])).toThrow()
+    expect(crearPartida(1, CURSADAS.slice(0, 2)).asignaturas).toHaveLength(2)
   })
 })
 
@@ -103,7 +106,7 @@ describe('zonas y calendario', () => {
 describe('aplicarDecisiones', () => {
   it('suma HOR con el multiplicador de zona, ENT y el estrés de todas las asignaturas', () => {
     const e = aplicarDecisiones(nueva(), ['intensivo', 'balanceada', 'salud', 'balanceada'])
-    expect(e.asignaturas.map((a) => a.horTramo)).toEqual([12 * 1.1, 6 * 1.1, 0, 6 * 1.1])
+    expect(e.asignaturas.map((a) => a.horTramo)).toEqual([14 * 1.1, 6 * 1.1, 0, 6 * 1.1])
     expect(e.asignaturas.map((a) => a.ent)).toEqual([0, 1, 0, 1])
     expect(e.estres).toBe(20 + 5 + 2 - 6 + 2)
     expect(e.semana).toBe(2)
@@ -111,11 +114,12 @@ describe('aplicarDecisiones', () => {
 
   it('usa la zona previa a la decisión para el multiplicador', () => {
     const e = aplicarDecisiones(nueva(1, { estres: 40 }), todas('intensivo', nueva()))
-    expect(e.estres).toBe(60)
-    expect(e.asignaturas[0]?.horTramo).toBeCloseTo(12 * 1.1)
+    // Misma decisión en todas: rutina, con −2 de estrés y ×0.8 de horas.
+    expect(e.estres).toBe(58)
+    expect(e.asignaturas[0]?.horTramo).toBeCloseTo(14 * 1.1 * 0.8)
 
     const amarilla = aplicarDecisiones(nueva(1, { estres: 41 }), todas('balanceada', nueva()))
-    expect(amarilla.asignaturas[0]?.horTramo).toBeCloseTo(6 * 0.85)
+    expect(amarilla.asignaturas[0]?.horTramo).toBeCloseTo(6 * 0.85 * 0.8)
   })
 
   it('acota el estrés entre 0 y 100', () => {
@@ -175,16 +179,16 @@ describe('parciales', () => {
   })
 
   it('en zona roja a veces hay bloqueo mental y la nota se reduce a la mitad', () => {
-    // 6 h × 0.6 en roja: sin bloqueo la nota queda en [0.96, 2.96]; con bloqueo, por debajo.
-    const sinBloqueo = notaParcial(6 * 0.6, 'roja', -1, false)
+    // Con el tramo ya estudiado, en zona roja la nota ronda 13–16; solo un bloqueo la baja de 10.
     let bloqueadas = 0
     let total = 0
     for (let semilla = 1; semilla <= 200; semilla++) {
-      const inicio = nueva(semilla, { semana: 5, estres: 100, crisisArmada: false })
+      const base = nueva(semilla, { semana: 5, estres: 100, crisisArmada: false })
+      const inicio = { ...base, asignaturas: base.asignaturas.map((a) => ({ ...a, horTramo: 40 })) }
       const e = aplicarDecisiones(inicio, todas('balanceada', inicio))
       for (const a of e.asignaturas) {
         total++
-        if (a.notas[0]! < sinBloqueo - 1e-9) bloqueadas++
+        if (a.notas[0]! < 10) bloqueadas++
       }
     }
     expect(bloqueadas / total).toBeGreaterThan(0.1)
@@ -203,7 +207,7 @@ describe('crisis', () => {
 
   it('se dispara al cruzar 80 y detiene la semana', () => {
     const e = aplicarDecisiones(alBorde(), todas('balanceada', alBorde()))
-    expect(e).toMatchObject({ fase: 'crisis', estres: 87, semana: 1, crisisArmada: false })
+    expect(e).toMatchObject({ fase: 'crisis', estres: 85, semana: 1, crisisArmada: false })
     expect(e.historial).toHaveLength(0)
     expect(aplicarDecisiones(e, todas('salud', e))).toBe(e)
   })
@@ -216,7 +220,7 @@ describe('crisis', () => {
   it('forzar continúa la semana sin cambiar el estrés', () => {
     const crisis = aplicarDecisiones(alBorde(), todas('balanceada', alBorde()))
     const e = resolverCrisis(crisis, 'forzar')
-    expect(e.estres).toBe(87)
+    expect(e.estres).toBe(85)
     expect(e.historial[0]).toMatchObject({ semana: 1, crisis: 'forzar', perdida: null })
   })
 
@@ -252,22 +256,23 @@ describe('crisis', () => {
     expect(e.historial.filter((r) => r.semana === 5)).toHaveLength(1)
   })
 
-  it('el reposo baja 40 de estrés y anula la semana en curso', () => {
+  it('el reposo baja 20 de estrés y anula la semana en curso', () => {
     const crisis = aplicarDecisiones(alBorde(), todas('balanceada', alBorde()))
     expect(crisis.asignaturas.map((a) => a.ent)).toEqual([1, 1, 1, 1])
     const e = resolverCrisis(crisis, 'reposo')
-    expect(e).toMatchObject({ estres: 47, semana: 2, crisisArmada: true })
+    // Queda en 65: por encima de 60, así que la crisis no se rearma.
+    expect(e).toMatchObject({ estres: 65, semana: 2, crisisArmada: false })
     expect(e.historial).toHaveLength(1)
     expect(e.historial[0]).toMatchObject({ semana: 1, crisis: 'reposo', perdida: 'reposo' })
     expect(e.asignaturas.every((a) => a.ent === 0 && a.horTramo === 0)).toBe(true)
   })
 
   it('un reposo en semana de parcial rinde el parcial igual, sin las horas de esa semana', () => {
-    const inicio = nueva(1, { semana: 5, estres: 79 })
+    const inicio = nueva(1, { semana: 5, estres: 62 })
     const e = resolverCrisis(aplicarDecisiones(inicio, todas('intensivo', inicio)), 'reposo')
     expect(e.semana).toBe(6)
     expect(e.historial[0]?.notas).toHaveLength(4)
-    // Sin horas y con estrés 59 (amarilla): 4 ± 1.
+    // Sin horas y con estrés 62 (amarilla): 4 ± 1.
     expect(e.asignaturas.every((a) => a.notas[0]! >= 3 && a.notas[0]! <= 5)).toBe(true)
   })
 
@@ -288,7 +293,7 @@ describe('crisis', () => {
       const segunda = e.historial[1]
       if (segunda?.perdida === 'colapso') {
         colapsos++
-        expect(segunda).toMatchObject({ semana: 2, decisiones: null, estres: 98 })
+        expect(segunda).toMatchObject({ semana: 2, decisiones: null, estres: 96 })
         expect(e.asignaturas.map((a) => a.ent)).toEqual([1, 1, 1, 1])
       }
     }
@@ -393,13 +398,13 @@ describe('ayudas para la interfaz', () => {
   })
 
   it('anticipa el efecto de una decisión con la zona y la semana actuales', () => {
-    expect(efectoDecision(nueva(), 'intensivo')).toEqual({ hor: 12 * 1.1, ent: 0, estres: 5 })
+    expect(efectoDecision(nueva(), 'intensivo')).toEqual({ hor: 14 * 1.1, ent: 0, estres: 5 })
     const parcialEnRoja = nueva(1, { semana: 5, estres: 90 })
     expect(efectoDecision(parcialEnRoja, 'balanceada')).toEqual({ hor: 6 * 0.6, ent: 0, estres: 2 })
   })
 
   it('anticipa el estrés y la crisis igual que al aplicar las decisiones', () => {
-    const e = nueva(1, { estres: 72 })
+    const e = nueva(1, { estres: 74 })
     const decisiones = todas('balanceada', e)
     expect(estresPrevisto(e, decisiones)).toBe(80)
     expect(provocaCrisis(e, decisiones)).toBe(true)
@@ -415,6 +420,13 @@ describe('ayudas para la interfaz', () => {
     expect(regularidadDe(asignatura([], 8), 14)).toBe('posible')
     expect(regularidadDe(asignatura([], 7), 14)).toBe('perdida')
     expect(regularidadDe(asignatura([], 8), 16)).toBe('perdida')
+  })
+
+  it('calcula cuántas semanas con entrega se pueden saltar todavía', () => {
+    expect(margenEntregas(asignatura([], 0), 1)).toBe(3)
+    expect(margenEntregas(asignatura([], 8), 14)).toBe(0)
+    expect(margenEntregas(asignatura([], 7), 14)).toBe(-1)
+    expect(margenEntregas(asignatura([], 9), 16)).toBe(0)
   })
 
   it('promedia solo los parciales rendidos', () => {
@@ -443,5 +455,57 @@ describe('nota estimada', () => {
     expect(notaEstimada(40, 50)).toBe(20)
     expect(notaEstimada(40, 90)).toBe(15)
     expect(notaEstimada(20, 50)).toBeCloseTo(notaParcial(20, 'amarilla', 0, false))
+  })
+})
+
+describe('rutina: la misma decisión en todas las asignaturas', () => {
+  it('se detecta solo cuando están todas decididas y son iguales', () => {
+    const e = nueva()
+    expect(esRutina(e, todas('intensivo', e))).toBe(true)
+    expect(esRutina(e, ['intensivo', 'intensivo', 'intensivo', 'balanceada'])).toBe(false)
+    expect(esRutina(e, ['intensivo', 'intensivo'])).toBe(false)
+  })
+
+  it('premia con menos estrés y castiga con menos horas', () => {
+    const e = nueva()
+    const rutina = aplicarDecisiones(e, todas('intensivo', e))
+    const variada = aplicarDecisiones(e, ['intensivo', 'intensivo', 'intensivo', 'balanceada'])
+
+    expect(rutina.estres).toBe(20 + 4 * 5 - BALANCE.rutina.alivioEstres)
+    expect(variada.estres).toBe(20 + 3 * 5 + 2)
+    expect(rutina.asignaturas[0]?.horTramo).toBeCloseTo(14 * 1.1 * BALANCE.rutina.multHor)
+    expect(variada.asignaturas[0]?.horTramo).toBeCloseTo(14 * 1.1)
+    expect(efectoDecision(e, 'intensivo', true).hor).toBeCloseTo(rutina.asignaturas[0]!.horTramo)
+  })
+
+  it('no quita entregas', () => {
+    const e = nueva()
+    expect(aplicarDecisiones(e, todas('balanceada', e)).asignaturas.map((a) => a.ent)).toEqual([
+      1, 1, 1, 1,
+    ])
+  })
+})
+
+describe('dificultad de las asignaturas', () => {
+  it('cada asignatura trae su propio objetivo de horas', () => {
+    expect(nueva().asignaturas.map((a) => a.horObjetivo)).toEqual(
+      CURSADAS.map((a) => a.horObjetivo),
+    )
+    expect(new Set(CURSADAS.map((a) => a.horObjetivo)).size).toBeGreaterThan(1)
+  })
+
+  it('con las mismas horas, la asignatura más exigente saca menos nota', () => {
+    expect(notaParcial(30, 'amarilla', 0, false, 46)).toBeLessThan(
+      notaParcial(30, 'amarilla', 0, false, 32),
+    )
+    expect(notaParcial(32, 'amarilla', 0, false, 32)).toBe(20)
+    expect(notaEstimada(30, 50, 46)).toBeCloseTo(notaParcial(30, 'amarilla', 0, false, 46))
+  })
+
+  it('en una partida, las mismas decisiones dan notas distintas por asignatura', () => {
+    const e = jugar(nueva(), 'balanceada', 5)
+    const [calculo, , , redaccion] = e.historial[4]!.notas!
+    // Cálculo exige 46 h y Redacción 32: la diferencia supera con holgura el ruido de ±1.
+    expect(redaccion! - calculo!).toBeGreaterThan(1)
   })
 })

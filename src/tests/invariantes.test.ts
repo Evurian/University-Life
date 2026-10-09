@@ -12,7 +12,6 @@ import { BALANCE, type DecisionId } from '../data/balance.ts'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 const OPCIONES: OpcionCrisis[] = ['forzar', 'forzar', 'reposo', 'reposo', 'abandono']
-const NOMBRES = ['A', 'B', 'C', 'D']
 
 function congelar<T>(valor: T): T {
   if (typeof valor === 'object' && valor !== null && !Object.isFrozen(valor)) {
@@ -33,7 +32,7 @@ function partidaAlAzar(semilla: number): {
     ;[valor, rng] = siguiente(rng)
     return Math.floor(valor * n)
   }
-  let e = congelar(crearPartida(semilla, NOMBRES.slice(0, 2 + azar(3))))
+  let e = congelar(crearPartida(semilla, BALANCE.asignaturas.slice(0, 2 + azar(3))))
   const estados = [e]
   const acciones: (DecisionId[] | OpcionCrisis)[] = []
   while (e.fase !== 'fin') {

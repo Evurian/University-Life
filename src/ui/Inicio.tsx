@@ -20,7 +20,7 @@ export function Inicio() {
 
       <fieldset>
         <legend>
-          <span className="paso activo">1</span> Elige cuántas asignaturas cursas
+          <span className="paso activo">1</span> Elige cuántos cursos llevas
         </legend>
         <div className="tarjetas">
           {CANTIDADES.map((n) => (
@@ -31,7 +31,7 @@ export function Inicio() {
                 checked={cantidad === n}
                 onChange={() => setCantidad(n)}
               />
-              <strong>{n} asignaturas</strong>
+              <strong>{n} cursos</strong>
               <span>{DIFICULTAD[n]}</span>
               <small>{NOMBRES_ASIGNATURAS.slice(0, n).join(', ')}</small>
             </label>

@@ -1,7 +1,7 @@
 // Reglas del juego como funciones puras: reciben un estado y devuelven otro.
 // Especificación: REGLAS.md. Números: src/data/balance.ts.
 
-import { BALANCE, type DecisionId, type ZonaId } from '../data/balance.ts'
+import { BALANCE, type DatosAsignatura, type DecisionId, type ZonaId } from '../data/balance.ts'
 import { siguiente } from './rng.ts'
 
 export type Fase = 'decision' | 'crisis' | 'fin'
@@ -11,6 +11,8 @@ export type FinalId = 'beca' | 'aprobado' | 'aprobado_parcial' | 'desaprobado' |
 
 export interface Asignatura {
   nombre: string
+  /** Horas por tramo con las que se alcanza la nota máxima: mide lo exigente que es. */
+  horObjetivo: number
   /** Horas acumuladas desde el parcial anterior, ya multiplicadas por zona. */
   horTramo: number
   ent: number
@@ -102,10 +104,15 @@ export function entregasRestantes(semana: number): number {
   return restantes
 }
 
-export function efectoDecision(e: Estado, decision: DecisionId): Efecto {
+/** Rutina: la misma decisión en todas las asignaturas. Alivia estrés, pero se estudia peor. */
+export function esRutina(e: Estado, decisiones: DecisionId[]): boolean {
+  return decisiones.length === e.asignaturas.length && decisiones.every((d) => d === decisiones[0])
+}
+
+export function efectoDecision(e: Estado, decision: DecisionId, rutina = false): Efecto {
   const d = BALANCE.decisiones[decision]
   return {
-    hor: d.hor * BALANCE.zonas[zonaDe(e.estres)].multHor,
+    hor: d.hor * BALANCE.zonas[zonaDe(e.estres)].multHor * (rutina ? BALANCE.rutina.multHor : 1),
     ent: parcialDeSemana(e.semana) === -1 ? d.ent : 0,
     estres: d.estres,
   }
@@ -114,7 +121,12 @@ export function efectoDecision(e: Estado, decision: DecisionId): Efecto {
 /** Estrés con el que quedaría el alumno tras aplicar las decisiones de la semana. */
 export function estresPrevisto(e: Estado, decisiones: DecisionId[]): number {
   const delta = decisiones.reduce((suma, d) => suma + BALANCE.decisiones[d].estres, 0)
-  return clamp(e.estres + delta - BALANCE.recuperacionPasiva, BALANCE.estresMin, BALANCE.estresMax)
+  const alivio = esRutina(e, decisiones) ? BALANCE.rutina.alivioEstres : 0
+  return clamp(
+    e.estres + delta - alivio - BALANCE.recuperacionPasiva,
+    BALANCE.estresMin,
+    BALANCE.estresMax,
+  )
 }
 
 export function provocaCrisis(e: Estado, decisiones: DecisionId[]): boolean {
@@ -124,6 +136,11 @@ export function provocaCrisis(e: Estado, decisiones: DecisionId[]): boolean {
 export function regularidadDe(a: Asignatura, semana: number): Regularidad {
   if (a.ent >= BALANCE.entregasRegularidad) return 'asegurada'
   return a.ent + entregasRestantes(semana) >= BALANCE.entregasRegularidad ? 'posible' : 'perdida'
+}
+
+/** Semanas con entrega que aún se pueden saltar sin perder la regularidad; negativo si ya se perdió. */
+export function margenEntregas(a: Asignatura, semana: number): number {
+  return a.ent + entregasRestantes(semana) - BALANCE.entregasRegularidad
 }
 
 /** Promedio ponderado de los parciales ya rendidos; null si aún no hay ninguno. */
@@ -144,17 +161,18 @@ export function notaParcial(
   zona: ZonaId,
   ruido: number,
   bloqueo: boolean,
+  horObjetivo: number = BALANCE.nota.horObjetivo,
 ): number {
   const n = BALANCE.nota
-  const avance = Math.min(1, horTramo / n.horObjetivo)
+  const avance = Math.min(1, horTramo / horObjetivo)
   const bruta = n.base + n.rango * avance ** n.exponente + BALANCE.zonas[zona].modParcial + ruido
   const nota = clamp(bruta, n.min, n.max)
   return bloqueo ? nota / n.divisorBloqueo : nota
 }
 
 /** Nota esperada de un parcial con esas horas y ese estrés, sin ruido ni bloqueo. */
-export function notaEstimada(horTramo: number, estres: number): number {
-  return notaParcial(horTramo, zonaDe(estres), 0, false)
+export function notaEstimada(horTramo: number, estres: number, horObjetivo?: number): number {
+  return notaParcial(horTramo, zonaDe(estres), 0, false, horObjetivo)
 }
 
 /** Redondea el promedio de una asignatura a entero; 0.5 sube. */
@@ -163,8 +181,8 @@ export function redondearPromedio(promedio: number): number {
   return Math.floor(promedio + 0.5 + 1e-9)
 }
 
-export function crearPartida(semilla: number, nombres: string[]): Estado {
-  if (nombres.length < BALANCE.asignaturasMin || nombres.length > BALANCE.asignaturasMax) {
+export function crearPartida(semilla: number, cursadas: readonly DatosAsignatura[]): Estado {
+  if (cursadas.length < BALANCE.asignaturasMin || cursadas.length > BALANCE.asignaturasMax) {
     throw new Error(
       `Se cursan entre ${BALANCE.asignaturasMin} y ${BALANCE.asignaturasMax} asignaturas`,
     )
@@ -177,7 +195,7 @@ export function crearPartida(semilla: number, nombres: string[]): Estado {
     fase: 'decision',
     crisisArmada: true,
     abandono: false,
-    asignaturas: nombres.map((nombre) => ({ nombre, horTramo: 0, ent: 0, notas: [] })),
+    asignaturas: cursadas.map((datos) => ({ ...datos, horTramo: 0, ent: 0, notas: [] })),
     decisionesEnCurso: null,
     asignaturasPrevias: null,
     historial: [],
@@ -191,8 +209,9 @@ export function aplicarDecisiones(e: Estado, decisiones: DecisionId[]): Estado {
     throw new Error('Hace falta una decisión por asignatura')
   }
 
+  const rutina = esRutina(e, decisiones)
   const asignaturas = e.asignaturas.map((a, i) => {
-    const efecto = efectoDecision(e, decisiones[i]!)
+    const efecto = efectoDecision(e, decisiones[i]!, rutina)
     return { ...a, horTramo: a.horTramo + efecto.hor, ent: a.ent + efecto.ent }
   })
   const estres = estresPrevisto(e, decisiones)
@@ -343,7 +362,7 @@ function registrar(
           ;[tirada, rng] = siguiente(rng)
           bloqueo = tirada < BALANCE.nota.probBloqueo
         }
-        nota = notaParcial(a.horTramo, zona, ruido, bloqueo)
+        nota = notaParcial(a.horTramo, zona, ruido, bloqueo, a.horObjetivo)
       }
       notas!.push(nota)
       detalle!.push({ hor: a.horTramo, bloqueo, rendido })

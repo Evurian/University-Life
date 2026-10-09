@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
+    // Las partidas simuladas y jsdom tardan varios segundos en máquinas lentas o con cobertura.
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: ['src/core/**/*.ts'],

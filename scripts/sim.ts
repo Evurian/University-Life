@@ -8,6 +8,7 @@ import {
   aplicarDecisiones,
   crearPartida,
   entregasRestantes,
+  esRutina,
   parcialDeSemana,
   resolverCrisis,
   resultado,
@@ -38,7 +39,7 @@ for (const ajuste of ajustes) {
   destino[ultima] = Number(valor)
 }
 
-const NOMBRES = ['Cálculo', 'Programación', 'Física', 'Redacción']
+const CURSADAS = BALANCE.asignaturas
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 const FINALES: FinalId[] = ['beca', 'aprobado', 'aprobado_parcial', 'desaprobado', 'abandono']
 
@@ -70,7 +71,8 @@ const planFijo: Estrategia = {
 }
 
 // Decide por asignatura: asegura la regularidad y estudia mientras el estrés no pase del techo.
-const adaptativa = (nombre: string, techo: number): Estrategia => ({
+// Con `variada`, si todas las decisiones salen iguales cambia una para no caer en la rutina.
+const adaptativa = (nombre: string, techo: number, variada = false): Estrategia => ({
   nombre,
   unBoton: false,
   decidir: (e) => {
@@ -78,12 +80,15 @@ const adaptativa = (nombre: string, techo: number): Estrategia => ({
     const restantes = entregasRestantes(e.semana)
     let estres = e.estres
     const cabe = (d: DecisionId) => estres + BALANCE.decisiones[d].estres <= techo
-    return e.asignaturas.map((a) => {
+    const obligadas: boolean[] = []
+    const decisiones = e.asignaturas.map((a) => {
       const faltanEntregas = BALANCE.entregasRegularidad - a.ent
       let decision: DecisionId = 'salud'
-      if (!esParcial && faltanEntregas > 0 && faltanEntregas >= restantes - 1) {
+      const obligada = !esParcial && faltanEntregas > 0 && faltanEntregas >= restantes - 1
+      obligadas.push(obligada)
+      if (obligada) {
         decision = 'balanceada'
-      } else if (a.horTramo < BALANCE.nota.horObjetivo && cabe('intensivo')) {
+      } else if (a.horTramo < a.horObjetivo && cabe('intensivo')) {
         decision = 'intensivo'
       } else if (!esParcial && faltanEntregas > 0 && cabe('balanceada')) {
         decision = 'balanceada'
@@ -91,6 +96,21 @@ const adaptativa = (nombre: string, techo: number): Estrategia => ({
       estres += BALANCE.decisiones[decision].estres
       return decision
     })
+
+    const comun = decisiones[0]!
+    const libres = decisiones.map((_, i) => i).filter((i) => !obligadas[i])
+    if (variada && comun !== 'salud' && libres.length > 0 && esRutina(e, decisiones)) {
+      // Cambia la asignatura que menos lo necesita: la más adelantada en horas o en entregas.
+      const ventaja = (i: number) => {
+        const a = e.asignaturas[i]!
+        return comun === 'intensivo' ? a.horTramo / a.horObjetivo : a.ent
+      }
+      const elegida = libres.reduce((mejor, i) => (ventaja(i) > ventaja(mejor) ? i : mejor))
+      const pendiente = e.asignaturas[elegida]!.ent < BALANCE.entregasRegularidad
+      if (comun === 'balanceada') decisiones[elegida] = 'salud'
+      else decisiones[elegida] = !esParcial && pendiente ? 'balanceada' : 'salud'
+    }
+    return decisiones
   },
   crisis: () => 'reposo',
 })
@@ -114,6 +134,7 @@ const ESTRATEGIAS: Estrategia[] = [
   planFijo,
   alLimite,
   adaptativa('adaptativa (zona verde)', BALANCE.zonas.verde.hasta),
+  adaptativa('adaptativa variada (zona verde)', BALANCE.zonas.verde.hasta, true),
   adaptativa('adaptativa (zona amarilla)', BALANCE.zonas.amarilla.hasta),
 ]
 
@@ -125,7 +146,7 @@ function jugar(estrategia: Estrategia, semilla: number) {
     ;[valor, rng] = siguiente(rng)
     return valor
   }
-  let e = crearPartida(semilla, NOMBRES)
+  let e = crearPartida(semilla, CURSADAS)
   let crisis = 0
   while (e.fase !== 'fin') {
     if (e.fase === 'crisis') {
@@ -169,7 +190,7 @@ const filas = ESTRATEGIAS.map((estrategia) => {
   }
 })
 
-console.log(`Partidas por estrategia: ${partidas} · asignaturas: ${NOMBRES.length}\n`)
+console.log(`Partidas por estrategia: ${partidas} · asignaturas: ${CURSADAS.length}\n`)
 console.table(
   Object.fromEntries(
     filas.map((f) => [

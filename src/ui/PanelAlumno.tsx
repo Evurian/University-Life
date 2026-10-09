@@ -40,19 +40,23 @@ export function PanelAlumno({ estado }: { estado: Estado }) {
         <summary>Cómo se juega</summary>
         <ul>
           <li>
-            <strong>Horas de estudio</strong> suben la nota del próximo parcial.
+            <strong>Horas de estudio</strong> suben la nota del próximo parcial. Los cursos
+            exigentes necesitan más horas para la misma nota.
           </li>
           <li>
-            <strong>Entregas:</strong> necesitas {BALANCE.entregasRegularidad} por asignatura para
-            poder aprobarla.
+            <strong>Rutina:</strong> la misma decisión en todos baja un poco el estrés, pero
+            estudias peor.
+          </li>
+          <li>
+            <strong>Trabajos:</strong> necesitas entregar {BALANCE.entregasRegularidad} en cada
+            curso para poder aprobarlo.
           </li>
           <li>
             <strong>Estrés:</strong> con más estrés estudias peor; al llegar a{' '}
             {BALANCE.crisis.umbralDisparo} % entras en crisis.
           </li>
           <li>
-            Apruebas una asignatura con promedio {BALANCE.beca.parcialMin} o más sobre{' '}
-            {BALANCE.nota.max}.
+            Apruebas un curso con promedio {BALANCE.beca.parcialMin} o más sobre {BALANCE.nota.max}.
           </li>
         </ul>
       </details>

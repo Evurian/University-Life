@@ -10,6 +10,12 @@ export interface Decision {
   estres: number
 }
 
+export interface DatosAsignatura {
+  nombre: string
+  /** Horas de estudio por tramo con las que se alcanza la nota máxima. */
+  horObjetivo: number
+}
+
 export interface Zona {
   /** Estrés máximo incluido en la zona. */
   hasta: number
@@ -24,7 +30,13 @@ export const BALANCE = {
   semanasParcial: [5, 10, 15],
   entregasPosibles: 12,
 
-  // Asignaturas (2, 2a)
+  // Asignaturas (2, 2a, 2b): se cursan las primeras N de la lista
+  asignaturas: [
+    { nombre: 'Cálculo', horObjetivo: 46 },
+    { nombre: 'Programación', horObjetivo: 40 },
+    { nombre: 'Física', horObjetivo: 42 },
+    { nombre: 'Redacción', horObjetivo: 32 },
+  ] satisfies DatosAsignatura[],
   asignaturasMin: 2,
   asignaturasMax: 4,
   asignaturasPorDefecto: 4,
@@ -37,10 +49,16 @@ export const BALANCE = {
 
   // Decisiones: efecto sobre una asignatura (10)
   decisiones: {
-    intensivo: { nombre: 'Estudio Intensivo', hor: 12, ent: 0, estres: 5 },
-    balanceada: { nombre: 'Cursada Balanceada', hor: 6, ent: 1, estres: 2 },
-    salud: { nombre: 'Priorizar Salud Mental', hor: 0, ent: 0, estres: -6 },
+    intensivo: { nombre: 'Estudiar a fondo', hor: 14, ent: 0, estres: 5 },
+    balanceada: { nombre: 'Hacer el trabajo semanal', hor: 6, ent: 1, estres: 2 },
+    salud: { nombre: 'Descansar', hor: 0, ent: 0, estres: -6 },
   } satisfies Record<DecisionId, Decision>,
+
+  // Rutina: la misma decisión en todas las asignaturas (10a)
+  rutina: {
+    alivioEstres: 2,
+    multHor: 0.8,
+  },
 
   // Zonas de estrés (13, 14, 16)
   zonas: {
@@ -81,7 +99,7 @@ export const BALANCE = {
     umbralDisparo: 80,
     umbralRearme: 60,
     probColapso: 0.25,
-    alivioReposo: 40,
+    alivioReposo: 20,
   },
 
   // Beca (31)
