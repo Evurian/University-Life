@@ -50,6 +50,8 @@ describe('interfaz', () => {
     expect(reglas.textContent).toContain('Trabajo semanal')
     expect(reglas.textContent).toContain('Descansar')
     expect(reglas.textContent).toContain('9 trabajos entregados')
+    expect(reglas.textContent).toContain('entregas 1 trabajo de ese curso')
+    expect(reglas.textContent).toContain('puedes saltarte 3')
     expect(reglas.textContent).toContain('entras en crisis')
 
     clic('Empezar')

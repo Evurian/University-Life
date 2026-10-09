@@ -668,12 +668,6 @@ small.mal {
   font-weight: 700;
 }
 
-.trabajos::before {
-  content: 'Trabajos entregados';
-  font-size: 0.85rem;
-  color: var(--tenue);
-}
-
 .pips {
   display: flex;
   gap: 3px;

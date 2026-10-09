@@ -5,7 +5,7 @@ const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 
 const PARA_QUE: Record<DecisionId, string> = {
   intensivo: 'Muchas horas de estudio para subir la nota, a costa de bastante estrés.',
-  balanceada: 'Entregas el trabajo de la semana y estudias un poco, con algo de estrés.',
+  balanceada: 'Entregas 1 trabajo de ese curso y estudias un poco, con algo de estrés.',
   salud: 'No estudias ni entregas, pero el estrés baja.',
 }
 
@@ -30,8 +30,15 @@ export function ComoSeJuega() {
       </ul>
       <ul className="reglas">
         <li>
-          <strong>Para aprobar un curso</strong> necesitas promedio {beca.parcialMin} o más sobre{' '}
-          {nota.max} y {BALANCE.entregasRegularidad} trabajos entregados.
+          <strong>Para aprobar un curso</strong> necesitas dos cosas: promedio {beca.parcialMin} o
+          más sobre {nota.max} en los parciales y {BALANCE.entregasRegularidad} trabajos entregados.
+        </li>
+        <li>
+          <strong>Trabajos:</strong> cada semana que eliges «{DECISIONES_CORTAS.balanceada}» en un
+          curso entregas 1 trabajo de ese curso. Hay {BALANCE.entregasPosibles} semanas con trabajo
+          (en las de parcial no hay), así que en cada curso puedes saltarte{' '}
+          {BALANCE.entregasPosibles - BALANCE.entregasRegularidad}. Sin los{' '}
+          {BALANCE.entregasRegularidad} trabajos el curso se desaprueba, tengas la nota que tengas.
         </li>
         <li>
           <strong>El estrés es uno solo</strong> para todos los cursos. Cuanto más alto, peor

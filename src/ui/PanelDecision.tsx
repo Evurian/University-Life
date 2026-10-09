@@ -33,6 +33,7 @@ function Trabajos({ curso, semana, suma }: { curso: Asignatura; semana: number; 
   const margen = margenEntregas(curso, semana)
   return (
     <span className="dato trabajos" data-etiqueta="Trabajos">
+      <small>Trabajos entregados (necesitas {NECESARIOS})</small>
       <span>
         {curso.ent}
         {suma > 0 && (
