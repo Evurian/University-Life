@@ -551,17 +551,39 @@ button.peligro {
   font-variant-numeric: tabular-nums;
 }
 
+.como-se-juega {
+  display: grid;
+  gap: 12px;
+}
+
+.como-se-juega p {
+  margin: 0;
+}
+
+.como-se-juega .leyenda {
+  margin: 0;
+}
+
+.reglas {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.ayuda .como-se-juega {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.ayuda .leyenda {
+  grid-template-columns: 1fr;
+}
+
 .ayuda summary {
   cursor: pointer;
   color: var(--acento);
   font-weight: 600;
-}
-
-.ayuda ul {
-  margin: 8px 0 0;
-  padding-left: 1.1em;
-  font-size: 0.9rem;
-  color: var(--tenue);
 }
 
 /* Decisiones */

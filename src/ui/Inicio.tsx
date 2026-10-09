@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BALANCE } from '../data/balance.ts'
 import { NOMBRES_ASIGNATURAS, useJuego } from '../store/juego.ts'
+import { ComoSeJuega } from './ComoSeJuega.tsx'
 
 const CANTIDADES = [2, 3, 4].filter(
   (n) => n >= BALANCE.asignaturasMin && n <= BALANCE.asignaturasMax,
@@ -17,6 +18,11 @@ export function Inicio() {
       <p className="entrada">
         Sobrevive a un cuatrimestre: cada semana decides cuánto estudiar y cuánto descansar.
       </p>
+
+      <section className="panel" aria-label="Cómo se juega">
+        <h2>Cómo se juega</h2>
+        <ComoSeJuega />
+      </section>
 
       <fieldset>
         <legend>

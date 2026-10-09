@@ -1,6 +1,7 @@
 import { promedioProvisional, type Estado } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { BarraEstres } from './BarraEstres.tsx'
+import { ComoSeJuega } from './ComoSeJuega.tsx'
 import { n1 } from './textos.ts'
 import { Valor } from './Valor.tsx'
 
@@ -38,27 +39,7 @@ export function PanelAlumno({ estado }: { estado: Estado }) {
 
       <details className="ayuda">
         <summary>Cómo se juega</summary>
-        <ul>
-          <li>
-            <strong>Horas de estudio</strong> suben la nota del próximo parcial. Los cursos
-            exigentes necesitan más horas para la misma nota.
-          </li>
-          <li>
-            <strong>Rutina:</strong> la misma decisión en todos baja un poco el estrés, pero
-            estudias peor.
-          </li>
-          <li>
-            <strong>Trabajos:</strong> necesitas entregar {BALANCE.entregasRegularidad} en cada
-            curso para poder aprobarlo.
-          </li>
-          <li>
-            <strong>Estrés:</strong> con más estrés estudias peor; al llegar a{' '}
-            {BALANCE.crisis.umbralDisparo} % entras en crisis.
-          </li>
-          <li>
-            Apruebas un curso con promedio {BALANCE.beca.parcialMin} o más sobre {BALANCE.nota.max}.
-          </li>
-        </ul>
+        <ComoSeJuega />
       </details>
     </aside>
   )

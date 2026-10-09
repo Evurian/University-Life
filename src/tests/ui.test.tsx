@@ -43,6 +43,19 @@ describe('interfaz', () => {
     expect(titulo()).toBe('UniversityLife')
   })
 
+  it('explica cómo se juega antes de empezar y lo mantiene a mano en la partida', () => {
+    render(<App />)
+    const reglas = screen.getByRole('region', { name: 'Cómo se juega' })
+    expect(reglas.textContent).toContain('Estudiar a fondo')
+    expect(reglas.textContent).toContain('Trabajo semanal')
+    expect(reglas.textContent).toContain('Descansar')
+    expect(reglas.textContent).toContain('9 trabajos entregados')
+    expect(reglas.textContent).toContain('entras en crisis')
+
+    clic('Empezar')
+    expect(screen.getByText('Cómo se juega').tagName).toBe('SUMMARY')
+  })
+
   it('respeta la cantidad de asignaturas elegida al empezar', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('radio', { name: /^2/ }))
