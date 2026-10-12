@@ -116,6 +116,61 @@ describe('interfaz', () => {
     expect(calculo.textContent).not.toBe(conRutina)
   })
 
+  it('las cards de acción muestran su efecto real de esta semana', () => {
+    useJuego.getState().nueva(4, 1)
+    render(<App />)
+    const fila = screen.getByRole('group', { name: 'Cálculo' })
+    const card = within(fila).getByRole('button', { name: 'Estudiar a fondo' })
+    // 14 h × 1.1 por estar en zona verde
+    expect(card.textContent).toContain('+15.4 h')
+    expect(card.textContent).toContain('+5 estrés')
+    expect(within(fila).getByRole('button', { name: 'Trabajo semanal' }).textContent).toContain(
+      '1 trabajo',
+    )
+    expect(within(fila).getByRole('button', { name: 'Descansar' }).textContent).toContain(
+      '−6 estrés',
+    )
+    expect(card.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(card)
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('en la vista de uno a uno se recorren los cursos y se conservan las decisiones', () => {
+    useJuego.getState().nueva(4, 1)
+    render(<App />)
+    clic('Uno a uno')
+    expect(screen.getAllByRole('group').filter((g) => g.className.includes('curso'))).toHaveLength(
+      1,
+    )
+    expect(screen.getByText('Curso 1 de 4')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '← Anterior' })).toHaveProperty('disabled', true)
+
+    for (const [i, nombre] of NOMBRES_ASIGNATURAS.entries()) {
+      const fila = screen.getByRole('group', { name: nombre })
+      fireEvent.click(
+        within(fila).getByRole('button', { name: i === 3 ? 'Descansar' : 'Estudiar a fondo' }),
+      )
+      if (i < 3) {
+        expect(confirmar()).toHaveProperty('disabled', true)
+        clic('Siguiente →')
+      }
+    }
+    expect(screen.getByRole('button', { name: 'Siguiente →' })).toHaveProperty('disabled', true)
+    expect(confirmar()).toHaveProperty('disabled', false)
+
+    clic('Ir a Cálculo')
+    const calculo = screen.getByRole('group', { name: 'Cálculo' })
+    const elegida = within(calculo).getByRole('button', { name: 'Estudiar a fondo' })
+    expect(elegida.getAttribute('aria-pressed')).toBe('true')
+
+    clic('Todos los cursos')
+    expect(screen.getByRole('group', { name: 'Redacción' })).toBeTruthy()
+    fireEvent.click(confirmar())
+    expect(titulo()).toBe('Semana 2 de 16')
+    // 20 + 5 + 5 + 5 − 6
+    expect(useJuego.getState().estado?.estres).toBe(29)
+  })
+
   it('un doble clic en confirmar avanza una sola semana', () => {
     useJuego.getState().nueva(4, 1)
     render(<App />)

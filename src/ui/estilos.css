@@ -1,23 +1,54 @@
-/* Estilos funcionales del MVP: legibilidad y estado del juego. */
+/* Sistema visual de UniversityLife (Fase 2.5). Dirección: campus moderno con claridad de simulador. */
 
 :root {
-  --fondo: #f4f5f7;
+  /* Color: superficies y texto */
+  --fondo: #f7f5ef;
   --panel: #ffffff;
-  --texto: #1c2430;
-  --tenue: #5b6676;
-  --borde: #d5dae2;
-  --acento: #1f5fbf;
-  --acento-suave: #eaf1fb;
-  --verde: #2e8b57;
-  --amarilla: #c98a00;
-  --roja: #c0392b;
-  --espacio: 16px;
+  --texto: #23354d;
+  --tenue: #5a6b80;
+  --borde: #ddd8cc;
+  --acento: #23354d;
+  --acento-fuerte: #16243a;
+  --acento-suave: #dce8f2;
 
-  font-family: system-ui, sans-serif;
+  /* Color: zonas de estrés. Los rellenos tienen poco contraste; para texto se usan las variantes. */
+  --verde: #78977b;
+  --amarilla: #d9a441;
+  --roja: #d96c62;
+  --verde-texto: #3f6b45;
+  --amarilla-texto: #8a5a00;
+  --roja-texto: #b23b30;
+  --aviso-fondo: #fbf1d8;
+  --peligro-fondo: #fbe6e3;
+  --destello: #f3dfa6;
+
+  /* Color: acciones */
+  --intensivo: #23354d;
+  --balanceada: #7a5fa8;
+  --salud: #5a6b80;
+
+  /* Forma */
+  --espacio: 16px;
+  --radio: 14px;
+  --radio-s: 9px;
+  --sombra: 0 1px 2px rgb(35 53 77 / 6%), 0 4px 14px rgb(35 53 77 / 7%);
+  --sombra-alta: 0 2px 4px rgb(35 53 77 / 8%), 0 10px 24px rgb(35 53 77 / 12%);
+
+  /* Tipografía */
+  --fuente: 'Inter Variable', system-ui, sans-serif;
+  --t-xs: 0.78rem;
+  --t-s: 0.88rem;
+  --t-m: 1rem;
+  --t-l: 1.15rem;
+  --t-xl: 1.5rem;
+  --t-xxl: 2rem;
+
+  font-family: var(--fuente);
   font-size: 16px;
   line-height: 1.5;
   color: var(--texto);
   background: var(--fondo);
+  font-feature-settings: 'cv11', 'ss01';
 }
 
 * {
@@ -29,8 +60,10 @@ body {
 }
 
 h1 {
-  font-size: 1.75rem;
-  line-height: 1.2;
+  font-size: var(--t-xxl);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   margin: 0;
 }
 
@@ -38,12 +71,14 @@ h2 {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 1.2rem;
+  font-size: var(--t-l);
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0 0 var(--espacio);
 }
 
 small {
-  font-size: 0.85rem;
+  font-size: var(--t-s);
   color: var(--tenue);
 }
 
@@ -54,7 +89,7 @@ button {
   min-height: 40px;
   padding: 6px 14px;
   border: 1px solid var(--borde);
-  border-radius: 8px;
+  border-radius: var(--radio-s);
   background: var(--panel);
   color: var(--texto);
   cursor: pointer;
@@ -62,6 +97,7 @@ button {
     background-color 0.15s,
     border-color 0.15s,
     color 0.15s,
+    box-shadow 0.15s,
     transform 0.1s;
 }
 
@@ -77,7 +113,7 @@ button:active:not(:disabled) {
 button:focus-visible,
 input:focus-visible,
 summary:focus-visible {
-  outline: 3px solid var(--acento);
+  outline: 3px solid var(--balanceada);
   outline-offset: 2px;
 }
 
@@ -86,25 +122,18 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button.elegida,
-button.elegida:hover:not(:disabled) {
-  background: var(--acento);
-  border-color: var(--acento);
-  color: #fff;
-  font-weight: 600;
-}
-
 button.principal {
   background: var(--acento);
   border-color: var(--acento);
   color: #fff;
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 10px 28px;
+  font-size: var(--t-l);
+  font-weight: 650;
+  padding: 11px 30px;
+  border-radius: 999px;
 }
 
 button.principal:hover:not(:disabled) {
-  background: #174a96;
+  background: var(--acento-fuerte);
 }
 
 button.principal.lista {
@@ -112,8 +141,8 @@ button.principal.lista {
 }
 
 button.peligro {
-  border-color: var(--roja);
-  color: var(--roja);
+  border-color: var(--roja-texto);
+  color: var(--roja-texto);
 }
 
 /* Pasos numerados: indican por dónde seguir */
@@ -142,14 +171,14 @@ button.peligro {
 }
 
 .paso.hecho {
-  border-color: var(--verde);
-  color: var(--verde);
+  border-color: var(--verde-texto);
+  color: var(--verde-texto);
 }
 
 /* Pantallas de inicio y final */
 
 .pantalla {
-  max-width: 780px;
+  max-width: 800px;
   margin: 0 auto;
   padding: calc(var(--espacio) * 3) var(--espacio);
   display: grid;
@@ -161,7 +190,7 @@ button.peligro {
 }
 
 .entrada {
-  font-size: 1.15rem;
+  font-size: var(--t-l);
   color: var(--tenue);
 }
 
@@ -177,7 +206,7 @@ button.peligro {
   gap: 10px;
   padding: 0;
   margin-bottom: var(--espacio);
-  font-size: 1.2rem;
+  font-size: var(--t-l);
   font-weight: 700;
 }
 
@@ -192,12 +221,18 @@ button.peligro {
   gap: 4px;
   padding: var(--espacio);
   border: 2px solid var(--borde);
-  border-radius: 10px;
+  border-radius: var(--radio);
   background: var(--panel);
+  box-shadow: var(--sombra);
   cursor: pointer;
   transition:
     border-color 0.15s,
-    background-color 0.15s;
+    background-color 0.15s,
+    transform 0.15s;
+}
+
+.tarjeta:hover {
+  transform: translateY(-2px);
 }
 
 .tarjeta.elegida {
@@ -208,10 +243,11 @@ button.peligro {
 .tarjeta input {
   justify-self: start;
   margin: 0 0 4px;
+  accent-color: var(--acento);
 }
 
 .tarjeta strong {
-  font-size: 1.15rem;
+  font-size: var(--t-l);
 }
 
 .llamada {
@@ -222,7 +258,7 @@ button.peligro {
 
 .nota {
   color: var(--tenue);
-  font-size: 0.9rem;
+  font-size: var(--t-s);
   margin: 0;
 }
 
@@ -279,7 +315,8 @@ button.peligro {
 .panel {
   background: var(--panel);
   border: 1px solid var(--borde);
-  border-radius: 10px;
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
   padding: calc(var(--espacio) * 1.25);
 }
 
@@ -291,10 +328,6 @@ button.peligro {
   white-space: nowrap;
 }
 
-.calendario li {
-  display: grid;
-}
-
 .calendario {
   display: grid;
   grid-template-columns: repeat(16, minmax(0, 1fr));
@@ -302,6 +335,10 @@ button.peligro {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.calendario li {
+  display: grid;
 }
 
 .calendario .casilla {
@@ -315,7 +352,7 @@ button.peligro {
   padding: 5px 2px 3px;
   border: 1px solid var(--borde);
   border-bottom-width: 6px;
-  border-radius: 8px;
+  border-radius: var(--radio-s);
   background: var(--panel);
   color: var(--tenue);
   font: inherit;
@@ -336,7 +373,7 @@ button.peligro {
 }
 
 .calendario button.casilla[aria-pressed='true'] {
-  outline: 3px solid var(--acento);
+  outline: 3px solid var(--balanceada);
   outline-offset: 1px;
 }
 
@@ -363,7 +400,7 @@ button.peligro {
 }
 
 .calendario .perdida {
-  color: var(--roja);
+  color: var(--roja-texto);
   font-weight: 700;
   line-height: 1;
 }
@@ -375,7 +412,7 @@ button.peligro {
 }
 
 .calendario li.parcial .casilla {
-  background: #fff6dd;
+  background: var(--aviso-fondo);
   color: var(--texto);
 }
 
@@ -396,7 +433,7 @@ button.peligro {
   background: var(--acento);
   color: #fff;
   transform: scale(1.08);
-  box-shadow: 0 3px 8px rgb(31 95 191 / 35%);
+  box-shadow: var(--sombra-alta);
 }
 
 .leyenda-calendario {
@@ -404,11 +441,11 @@ button.peligro {
   flex-wrap: wrap;
   gap: 4px 14px;
   margin: 6px 0 0;
-  font-size: 0.8rem;
+  font-size: var(--t-xs);
   color: var(--tenue);
 }
 
-/* Puntos que identifican cada decisión, en el calendario y en las leyendas */
+/* Puntos e iconos que identifican cada acción */
 
 .punto {
   display: inline-block;
@@ -419,21 +456,35 @@ button.peligro {
   background: var(--decision);
 }
 
-.punto.intensivo {
-  --decision: #1f5fbf;
+.intensivo {
+  --decision: var(--intensivo);
 }
 
-.punto.balanceada {
-  --decision: #7a4fbf;
+.balanceada {
+  --decision: var(--balanceada);
+}
+
+.salud {
+  --decision: var(--salud);
 }
 
 .punto.salud {
-  --decision: #6b7686;
   background: transparent;
 }
 
 .calendario li.actual .punto {
   --decision: #fff;
+}
+
+.icono {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--decision);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Estrés */
@@ -444,16 +495,17 @@ button.peligro {
 
 .zona.verde,
 .bien {
-  color: var(--verde);
+  color: var(--verde-texto);
 }
 
-.zona.amarilla {
-  color: var(--amarilla);
+.zona.amarilla,
+.alerta {
+  color: var(--amarilla-texto);
 }
 
 .zona.roja,
 .mal {
-  color: var(--roja);
+  color: var(--roja-texto);
 }
 
 .estres {
@@ -469,7 +521,7 @@ button.peligro {
 }
 
 .cerebro .banda {
-  opacity: 0.2;
+  opacity: 0.28;
 }
 
 .cerebro .verde {
@@ -524,13 +576,15 @@ button.peligro {
 .estres-valor {
   white-space: nowrap;
   font-size: 2.2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .estres-cambio {
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: var(--t-s);
   font-weight: 600;
 }
 
@@ -546,10 +600,13 @@ button.peligro {
 .ovr-valor {
   font-size: 2.6rem;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   min-width: 2ch;
   font-variant-numeric: tabular-nums;
 }
+
+/* Cómo se juega */
 
 .como-se-juega {
   display: grid;
@@ -560,8 +617,32 @@ button.peligro {
   margin: 0;
 }
 
-.como-se-juega .leyenda {
+.leyenda {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  list-style: none;
   margin: 0;
+  padding: 0;
+}
+
+.leyenda li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+}
+
+.leyenda strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leyenda span {
+  font-size: var(--t-s);
+  color: var(--tenue);
 }
 
 .reglas {
@@ -573,7 +654,7 @@ button.peligro {
 
 .ayuda .como-se-juega {
   margin-top: 10px;
-  font-size: 0.9rem;
+  font-size: var(--t-s);
 }
 
 .ayuda .leyenda {
@@ -582,61 +663,116 @@ button.peligro {
 
 .ayuda summary {
   cursor: pointer;
-  color: var(--acento);
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Decisiones */
 
-.leyenda {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 8px;
-  list-style: none;
-  margin: 0 0 var(--espacio);
-  padding: 0;
+.encabezado-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px var(--espacio);
+  margin-bottom: var(--espacio);
 }
 
-.leyenda li {
-  display: grid;
-  gap: 2px;
-  padding: 8px 12px;
-  border-radius: 8px;
+.encabezado-panel h2 {
+  margin: 0;
+}
+
+.selector-vista {
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
   background: var(--fondo);
 }
 
-.leyenda span {
-  font-size: 0.9rem;
+.selector-vista button {
+  min-height: 30px;
+  padding: 2px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: var(--t-s);
   color: var(--tenue);
-  font-variant-numeric: tabular-nums;
 }
 
-.tabla-cursos {
+.selector-vista button[aria-pressed='true'] {
+  background: var(--panel);
+  color: var(--texto);
+  font-weight: 600;
+  box-shadow: var(--sombra);
+}
+
+.lista-cursos {
   display: grid;
-  gap: 10px;
-  margin-bottom: calc(var(--espacio) * 1.5);
+  gap: 12px;
+  container: cursos / inline-size;
 }
 
 .curso {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
   align-items: start;
   gap: 10px 16px;
-  padding: 12px 14px;
+  padding: 14px;
   border: 1px solid var(--borde);
-  border-radius: 10px;
+  border-radius: var(--radio);
+  background: var(--fondo);
 }
 
-.curso .botones {
-  grid-column: 1 / -1;
+.curso .nombre {
+  grid-area: nombre;
+}
+
+.curso .dato {
+  grid-area: nota;
+}
+
+.curso .trabajos {
+  grid-area: trabajos;
+}
+
+.curso .cards {
+  grid-area: cards;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+  align-self: stretch;
+}
+
+/* Todos los cursos: los datos a la izquierda y las tres cards a la derecha, en una sola franja. */
+.lista-cursos .curso {
+  grid-template-columns: 100px minmax(0, 190px) minmax(0, 1fr);
+  grid-template-areas:
+    'nombre nombre cards'
+    'nota trabajos cards';
+}
+
+/* Un curso cada vez: los datos arriba y las cards grandes debajo. */
+.curso.grande {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
+  grid-template-areas:
+    'nombre nota trabajos'
+    'cards cards cards';
+}
+
+/* Depende del ancho del panel, no de la ventana: si las cards no caben al lado, bajan. */
+@container cursos (max-width: 780px) {
+  .lista-cursos .curso {
+    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-areas:
+      'nombre nombre'
+      'nota trabajos'
+      'cards cards';
+  }
 }
 
 .nombre {
   display: grid;
-  font-size: 1.1rem;
+  font-size: var(--t-l);
   font-weight: 700;
 }
 
@@ -649,22 +785,18 @@ button.peligro {
 .dato {
   display: grid;
   gap: 2px;
-  font-size: 1.1rem;
+  font-size: var(--t-l);
   font-variant-numeric: tabular-nums;
 }
 
 .dato .nuevo {
-  font-weight: 700;
-  color: var(--acento);
-}
-
-.alerta {
-  color: #9a5b00;
-  font-weight: 700;
+  font-weight: 750;
+  color: var(--balanceada);
 }
 
 small.bien,
-small.mal {
+small.mal,
+small.alerta {
   font-weight: 700;
 }
 
@@ -678,6 +810,7 @@ small.mal {
   height: 12px;
   border-radius: 3px;
   border: 1.5px solid var(--borde);
+  background: var(--panel);
   transition:
     background-color 0.3s,
     border-color 0.3s;
@@ -685,12 +818,192 @@ small.mal {
 
 .pips i.hecho {
   background: var(--verde);
-  border-color: var(--verde);
+  border-color: var(--verde-texto);
 }
 
 .pips i.previsto {
   background: var(--acento-suave);
+  border-color: var(--balanceada);
+}
+
+/* Card de acción */
+
+.card-decision {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--panel);
+  text-align: left;
+  box-shadow: var(--sombra);
+}
+
+.card-decision:hover:not(:disabled) {
+  border-color: var(--decision);
+  background: var(--panel);
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-alta);
+}
+
+.card-decision.elegida,
+.card-decision.elegida:hover:not(:disabled) {
+  border-color: var(--decision);
+  background: var(--acento-suave);
+}
+
+.card-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.visto {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--decision);
+  color: #fff;
+  font-size: 0.8rem;
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 0.2s,
+    transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.card-decision.elegida .visto {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.card-detalle {
+  display: grid;
+  gap: 8px;
+}
+
+.intencion {
+  font-size: var(--t-s);
+  color: var(--tenue);
+}
+
+.efectos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.efectos span {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--fondo);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.efectos .sube {
+  color: var(--roja-texto);
+}
+
+.efectos .baja {
+  color: var(--verde-texto);
+}
+
+.card-decision.elegida .efectos span {
+  background: var(--panel);
+}
+
+/* Vista de un curso cada vez */
+
+.uno-a-uno {
+  display: grid;
+  gap: 12px;
+}
+
+.pasos-cursos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pasos-cursos button {
+  display: grid;
+  width: 100%;
+  padding: 6px 10px;
+  border-bottom-width: 4px;
+  text-align: left;
+  font-weight: 650;
+}
+
+.pasos-cursos small {
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pasos-cursos button.decidido {
+  border-bottom-color: var(--verde);
+}
+
+.pasos-cursos button[aria-current='step'] {
   border-color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.curso.grande {
+  padding: 18px;
+  animation: entrar 0.25s ease-out;
+}
+
+.curso.grande .nombre {
+  font-size: var(--t-xl);
+}
+
+.card-decision.grande {
+  padding: 16px;
+}
+
+.card-decision.grande .icono {
+  width: 28px;
+  height: 28px;
+}
+
+.card-decision.grande .card-titulo {
+  font-size: var(--t-l);
+}
+
+.navegacion-cursos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio);
+  color: var(--tenue);
+}
+
+.navegacion-cursos button.sugerido {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
 }
 
 .atajo {
@@ -698,17 +1011,18 @@ small.mal {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 4px 14px;
+  margin: 12px 0 calc(var(--espacio) * 1.5);
+  padding: 0 4px;
   color: var(--tenue);
 }
 
 .atajo .nombre {
-  font-size: 1rem;
+  font-size: var(--t-m);
 }
 
 .atajo button {
   min-height: 34px;
-  font-size: 0.9rem;
+  font-size: var(--t-s);
 }
 
 .botones {
@@ -718,17 +1032,21 @@ small.mal {
 }
 
 @media (max-width: 700px) {
-  .curso {
-    grid-template-columns: 1fr 1fr;
+  .curso.grande {
+    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-areas:
+      'nombre nombre'
+      'nota trabajos'
+      'cards cards';
   }
 
-  .curso .nombre {
-    grid-column: 1 / -1;
-  }
-
-  .curso .botones,
+  .curso .cards,
   .atajo {
     grid-template-columns: 1fr;
+  }
+
+  .pasos-cursos small {
+    display: none;
   }
 }
 
@@ -742,28 +1060,29 @@ small.mal {
 
 .previsto {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--t-l);
 }
 
 .aviso {
   border-left: 4px solid var(--amarilla);
-  border-radius: 4px;
-  background: #fff8e6;
+  border-radius: var(--radio-s);
+  background: var(--aviso-fondo);
   padding: 8px 12px;
   margin: 0 0 var(--espacio);
   animation: entrar 0.3s ease-out;
 }
 
-.cierre + .aviso {
+.cierre + .aviso,
+.aviso + .aviso {
   margin: var(--espacio) 0 0;
 }
 
 .aviso.peligro {
   border-left-color: var(--roja);
-  background: #fdecea;
+  background: var(--peligro-fondo);
 }
 
-/* Qué pasó */
+/* Qué pasó y detalle de una semana */
 
 .resumen {
   border-left: 5px solid var(--acento);
@@ -776,7 +1095,7 @@ small.mal {
 
 .cerrar {
   min-height: 32px;
-  font-size: 0.9rem;
+  font-size: var(--t-s);
   font-weight: 400;
 }
 
@@ -808,19 +1127,19 @@ table {
 caption {
   text-align: left;
   color: var(--tenue);
-  font-size: 0.9rem;
+  font-size: var(--t-s);
   padding-bottom: 4px;
 }
 
 th,
 td {
   text-align: left;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--borde);
 }
 
 thead th {
-  font-size: 0.85rem;
+  font-size: var(--t-s);
   font-weight: 400;
   color: var(--tenue);
 }
@@ -833,15 +1152,16 @@ thead th {
   display: grid;
   place-items: center;
   padding: var(--espacio);
-  background: rgb(0 0 0 / 55%);
+  background: rgb(22 36 58 / 60%);
   animation: aparecer 0.25s ease-out;
 }
 
 .modal {
   max-width: 540px;
   background: var(--panel);
-  border-radius: 10px;
+  border-radius: var(--radio);
   border-top: 6px solid var(--roja);
+  box-shadow: var(--sombra-alta);
   padding: calc(var(--espacio) * 1.75);
   animation: subir 0.3s cubic-bezier(0.3, 1.3, 0.5, 1);
 }
@@ -856,7 +1176,7 @@ thead th {
 
 .opciones-crisis p {
   margin: 4px 0 0;
-  font-size: 0.9rem;
+  font-size: var(--t-s);
   color: var(--tenue);
 }
 
@@ -869,8 +1189,8 @@ thead th {
 
 @keyframes destello {
   from {
-    background-color: #ffe08a;
-    box-shadow: 0 0 0 4px #ffe08a;
+    background-color: var(--destello);
+    box-shadow: 0 0 0 4px var(--destello);
   }
 
   to {
@@ -882,11 +1202,11 @@ thead th {
 @keyframes latido {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(31 95 191 / 45%);
+    box-shadow: 0 0 0 0 rgb(35 53 77 / 40%);
   }
 
   50% {
-    box-shadow: 0 0 0 8px rgb(31 95 191 / 0%);
+    box-shadow: 0 0 0 9px rgb(35 53 77 / 0%);
   }
 }
 

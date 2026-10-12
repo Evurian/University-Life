@@ -10,15 +10,20 @@ import {
   regularidadDe,
   zonaDe,
   type Asignatura,
+  type Efecto,
   type Estado,
 } from '../core/simulacion.ts'
 import { BALANCE, type DecisionId } from '../data/balance.ts'
 import { useJuego } from '../store/juego.ts'
+import { CardDecision } from './CardDecision.tsx'
 import { conSigno, DECISIONES_CORTAS, n1, ZONAS } from './textos.ts'
 import { Valor } from './Valor.tsx'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 const NECESARIOS = BALANCE.entregasRegularidad
+
+type Elegidas = (DecisionId | null)[]
+type Vista = 'todos' | 'uno'
 
 const exigencia = (horObjetivo: number) =>
   horObjetivo > BALANCE.nota.horObjetivo
@@ -27,13 +32,19 @@ const exigencia = (horObjetivo: number) =>
       ? 'Ligero'
       : 'Medio'
 
+// En pantallas estrechas no caben todos los cursos con sus cards: se empieza de uno en uno.
+const vistaInicial = (): Vista =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches
+    ? 'uno'
+    : 'todos'
+
 /** Trabajos entregados de un curso frente a los necesarios, y cuánto margen queda. */
 function Trabajos({ curso, semana, suma }: { curso: Asignatura; semana: number; suma: number }) {
   const estado = regularidadDe(curso, semana)
   const margen = margenEntregas(curso, semana)
   return (
-    <span className="dato trabajos" data-etiqueta="Trabajos">
-      <small>Trabajos entregados (necesitas {NECESARIOS})</small>
+    <span className="dato trabajos">
+      <small>Trabajos (necesitas {NECESARIOS})</small>
       <span>
         {curso.ent}
         {suma > 0 && (
@@ -66,15 +77,81 @@ function Trabajos({ curso, semana, suma }: { curso: Asignatura; semana: number; 
   )
 }
 
-type Elegidas = (DecisionId | null)[]
+interface CursoProps {
+  estado: Estado
+  curso: Asignatura
+  elegida: DecisionId | null
+  /** Efecto de la decisión elegida, ya con la rutina aplicada si corresponde. */
+  efecto: Efecto | null
+  previsto: number
+  bloqueado: boolean
+  grande?: boolean
+  onElegir(decision: DecisionId): void
+}
+
+/** Un curso: cómo va, y una card por cada acción posible esta semana. */
+function Curso({
+  estado,
+  curso,
+  elegida,
+  efecto,
+  previsto,
+  bloqueado,
+  grande,
+  onElegir,
+}: CursoProps) {
+  return (
+    <div className={`curso ${grande ? 'grande' : ''}`} role="group" aria-label={curso.nombre}>
+      <span className="nombre">
+        {curso.nombre}
+        <small>
+          {exigencia(curso.horObjetivo)} · {curso.horObjetivo} h por parcial
+        </small>
+        {curso.notas.length > 0 && <small>Parciales: {curso.notas.map(n1).join(' · ')}</small>}
+      </span>
+      <span className="dato">
+        <small>Nota estimada</small>
+        <span>
+          {n1(notaEstimada(curso.horTramo, estado.estres, curso.horObjetivo))}
+          {efecto && (
+            <>
+              {' → '}
+              <Valor className="nuevo">
+                {n1(notaEstimada(curso.horTramo + efecto.hor, previsto, curso.horObjetivo))}
+              </Valor>
+            </>
+          )}
+        </span>
+      </span>
+      <Trabajos curso={curso} semana={estado.semana} suma={efecto ? efecto.ent : 0} />
+      <span className="cards">
+        {DECISIONES.map((d) => (
+          <CardDecision
+            key={d}
+            decision={d}
+            efecto={efectoDecision(estado, d)}
+            elegida={elegida === d}
+            disabled={bloqueado}
+            grande={grande}
+            onElegir={() => onElegir(d)}
+          />
+        ))}
+      </span>
+    </div>
+  )
+}
 
 export function PanelDecision({ estado }: { estado: Estado }) {
   const decidir = useJuego((s) => s.decidir)
+  const [vista, setVista] = useState<Vista>(vistaInicial)
   const vacias: Elegidas = estado.asignaturas.map(() => null)
-  // Las elecciones valen solo para la semana en que se hicieron.
-  const [seleccion, setSeleccion] = useState({ semana: estado.semana, elegidas: vacias })
-  const elegidas = seleccion.semana === estado.semana ? seleccion.elegidas : vacias
-  const fijar = (nuevas: Elegidas) => setSeleccion({ semana: estado.semana, elegidas: nuevas })
+  // Las elecciones y el curso abierto valen solo para la semana en que se hicieron.
+  const [seleccion, setSeleccion] = useState({ semana: estado.semana, elegidas: vacias, curso: 0 })
+  const vigente = seleccion.semana === estado.semana
+  const elegidas = vigente ? seleccion.elegidas : vacias
+  const abierto = vigente ? seleccion.curso : 0
+  const fijar = (nuevas: Elegidas, curso = abierto) =>
+    setSeleccion({ semana: estado.semana, elegidas: nuevas, curso })
 
   const bloqueado = estado.fase !== 'decision'
   const completas = elegidas.filter((d): d is DecisionId => d !== null)
@@ -85,99 +162,107 @@ export function PanelDecision({ estado }: { estado: Estado }) {
   const zonaPrevista = zonaDe(previsto)
   const costeRutina = `${conSigno(-BALANCE.rutina.alivioEstres)} de estrés, pero ${conSigno(Math.round((BALANCE.rutina.multHor - 1) * 100))} % de horas`
 
+  const curso = (i: number, grande = false) => {
+    const a = estado.asignaturas[i]!
+    const elegida = elegidas[i] ?? null
+    return (
+      <Curso
+        key={a.nombre}
+        estado={estado}
+        curso={a}
+        elegida={elegida}
+        efecto={elegida && efectoDecision(estado, elegida, rutina)}
+        previsto={previsto}
+        bloqueado={bloqueado}
+        grande={grande}
+        onElegir={(d) => fijar(elegidas.map((actual, j) => (j === i ? d : actual)))}
+      />
+    )
+  }
+  const ultimo = estado.asignaturas.length - 1
+
   return (
     <section className="panel" aria-label="Decisiones de la semana">
-      <h2>
-        <span className={`paso ${lista ? 'hecho' : 'activo'}`}>1</span>
-        Elige qué hacer en cada curso
-      </h2>
+      <div className="encabezado-panel">
+        <h2>
+          <span className={`paso ${lista ? 'hecho' : 'activo'}`}>1</span>
+          Elige qué hacer en cada curso
+        </h2>
+        <div className="selector-vista" role="group" aria-label="Vista de los cursos">
+          {(['todos', 'uno'] as const).map((v) => (
+            <button key={v} type="button" aria-pressed={vista === v} onClick={() => setVista(v)}>
+              {v === 'todos' ? 'Todos los cursos' : 'Uno a uno'}
+            </button>
+          ))}
+        </div>
+      </div>
       {esParcial && (
         <p className="aviso">
           Semana de parcial: se rinde al confirmar y no hay trabajo que entregar.
         </p>
       )}
 
-      <ul className="leyenda" aria-label="Efecto de cada decisión esta semana">
-        {DECISIONES.map((d) => {
-          const efecto = efectoDecision(estado, d)
-          return (
-            <li key={d}>
-              <strong>
-                <i className={`punto ${d}`} aria-hidden="true" /> {DECISIONES_CORTAS[d]}
-              </strong>
-              <span>
-                {efecto.hor ? `+${n1(efecto.hor)} h de estudio` : 'sin estudio'}
-                {efecto.ent ? ' · entregas el trabajo' : ''} · {conSigno(efecto.estres)} estrés
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-
-      <div className="tabla-cursos">
-        {estado.asignaturas.map((a, i) => {
-          const elegida = elegidas[i] ?? null
-          const efecto = elegida && efectoDecision(estado, elegida, rutina)
-          return (
-            <div key={a.nombre} className="curso" role="group" aria-label={a.nombre}>
-              <span className="nombre">
-                {a.nombre}
-                <small>
-                  {exigencia(a.horObjetivo)} · {a.horObjetivo} h por parcial
-                </small>
-                {a.notas.length > 0 && <small>Parciales: {a.notas.map(n1).join(' · ')}</small>}
-              </span>
-              <span className="dato" data-etiqueta="Nota estimada">
-                <small>Nota estimada</small>
-                <span>
-                  {n1(notaEstimada(a.horTramo, estado.estres, a.horObjetivo))}
-                  {efecto && (
-                    <>
-                      {' → '}
-                      <Valor className="nuevo">
-                        {n1(notaEstimada(a.horTramo + efecto.hor, previsto, a.horObjetivo))}
-                      </Valor>
-                    </>
-                  )}
-                </span>
-              </span>
-              <Trabajos curso={a} semana={estado.semana} suma={efecto ? efecto.ent : 0} />
-              <span className="botones">
-                {DECISIONES.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={elegida === d ? 'elegida' : undefined}
-                    aria-pressed={elegida === d}
-                    disabled={bloqueado}
-                    onClick={() => fijar(elegidas.map((actual, j) => (j === i ? d : actual)))}
-                  >
-                    {DECISIONES_CORTAS[d]}
-                  </button>
-                ))}
-              </span>
-            </div>
-          )
-        })}
-
-        <div className="atajo">
-          <span className="nombre">
-            Atajo
-            <small>Rutina: {costeRutina}</small>
-          </span>
-          <span className="botones">
-            {DECISIONES.map((d) => (
-              <button
-                key={d}
-                type="button"
-                disabled={bloqueado}
-                onClick={() => fijar(estado.asignaturas.map(() => d))}
-              >
-                {DECISIONES_CORTAS[d]} en todos
-              </button>
+      {vista === 'todos' ? (
+        <div className="lista-cursos">{estado.asignaturas.map((_, i) => curso(i))}</div>
+      ) : (
+        <div className="uno-a-uno">
+          <ol className="pasos-cursos" aria-label="Cursos">
+            {estado.asignaturas.map((a, i) => (
+              <li key={a.nombre}>
+                <button
+                  type="button"
+                  className={elegidas[i] ? 'decidido' : undefined}
+                  aria-label={`Ir a ${a.nombre}`}
+                  aria-current={i === abierto ? 'step' : undefined}
+                  onClick={() => fijar(elegidas, i)}
+                >
+                  {a.nombre}
+                  <small>{elegidas[i] ? DECISIONES_CORTAS[elegidas[i]] : 'Sin decidir'}</small>
+                </button>
+              </li>
             ))}
-          </span>
+          </ol>
+          {curso(abierto, true)}
+          <div className="navegacion-cursos">
+            <button
+              type="button"
+              disabled={abierto === 0}
+              onClick={() => fijar(elegidas, abierto - 1)}
+            >
+              ← Anterior
+            </button>
+            <span>
+              Curso {abierto + 1} de {estado.asignaturas.length}
+            </span>
+            <button
+              type="button"
+              className={elegidas[abierto] && abierto < ultimo ? 'sugerido' : undefined}
+              disabled={abierto === ultimo}
+              onClick={() => fijar(elegidas, abierto + 1)}
+            >
+              Siguiente →
+            </button>
+          </div>
         </div>
+      )}
+
+      <div className="atajo">
+        <span className="nombre">
+          Atajo
+          <small>Rutina: {costeRutina}</small>
+        </span>
+        <span className="botones">
+          {DECISIONES.map((d) => (
+            <button
+              key={d}
+              type="button"
+              disabled={bloqueado}
+              onClick={() => fijar(estado.asignaturas.map(() => d))}
+            >
+              {DECISIONES_CORTAS[d]} en todos
+            </button>
+          ))}
+        </span>
       </div>
 
       <h2>

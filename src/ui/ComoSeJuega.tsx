@@ -1,13 +1,8 @@
 import { BALANCE, type DecisionId } from '../data/balance.ts'
-import { conSigno, DECISIONES_CORTAS } from './textos.ts'
+import { IconoDecision } from './CardDecision.tsx'
+import { conSigno, DECISIONES_CORTAS, INTENCION } from './textos.ts'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
-
-const PARA_QUE: Record<DecisionId, string> = {
-  intensivo: 'Muchas horas de estudio para subir la nota, a costa de bastante estrés.',
-  balanceada: 'Entregas 1 trabajo de ese curso y estudias un poco, con algo de estrés.',
-  salud: 'No estudias ni entregas, pero el estrés baja.',
-}
 
 /** Reglas del juego en corto. Se muestra antes de empezar y queda a mano durante la partida. */
 export function ComoSeJuega() {
@@ -22,9 +17,9 @@ export function ComoSeJuega() {
         {DECISIONES.map((d) => (
           <li key={d}>
             <strong>
-              <i className={`punto ${d}`} aria-hidden="true" /> {DECISIONES_CORTAS[d]}
+              <IconoDecision decision={d} /> {DECISIONES_CORTAS[d]}
             </strong>
-            <span>{PARA_QUE[d]}</span>
+            <span>{INTENCION[d]}</span>
           </li>
         ))}
       </ul>

@@ -16,6 +16,13 @@ export const DECISIONES_CORTAS: Record<DecisionId, string> = {
   salud: 'Descansar',
 }
 
+/** Para qué sirve cada acción, en una línea. */
+export const INTENCION: Record<DecisionId, string> = {
+  intensivo: 'Muchas horas de estudio para subir la nota, a costa de bastante estrés.',
+  balanceada: 'Entregas 1 trabajo de ese curso y estudias un poco, con algo de estrés.',
+  salud: 'No estudias ni entregas, pero el estrés baja.',
+}
+
 export const FINALES: Record<FinalId, { titulo: string; texto: string }> = {
   beca: {
     titulo: 'Beca',
