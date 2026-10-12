@@ -30,8 +30,8 @@ El jugador cursa un cuatrimestre de 16 semanas con hasta 4 asignaturas. Cada sem
 | # | Regla | Valor | Estado |
 |---|---|---|---|
 | 1 | Duración de una partida | Un cuatrimestre | Cerrada |
-| 2 | Asignaturas | Varias, máximo 4 | Cerrada |
-| 2a | Cantidad por partida | El jugador elige entre 2 y 4 al empezar; por defecto 4 | Cerrada |
+| 2 | Asignaturas | 3 o 4 (ver regla 35) | Cerrada |
+| 2a | Cantidad por partida | El jugador elige 3 o 4 al empezar; por defecto 4 | Cerrada |
 | 2b | Diferencias entre asignaturas | Cada una exige distintas horas por parcial; ver tabla | Calibrada en Fase 2 |
 | 3 | Finanzas como recurso | No | Cerrada |
 | 4 | Eventos aleatorios | No | Cerrada |
@@ -186,6 +186,110 @@ Cambios hechos en la Fase 2, tras las primeras partidas:
 - **Regla 10a:** se añadió la rutina, para que elegir lo mismo en todas tenga un premio (menos estrés) y un castigo (menos horas). Con −3 de estrés el atajo se volvía la mejor estrategia; con −2 queda como opción cómoda que aprueba pero no alcanza la beca.
 - **Regla 28:** el reposo pasó de −40 a −20 de estrés. Con −40 aliviaba más que una semana entera de descanso voluntario (−24 con 4 asignaturas), de modo que provocar la crisis salía a cuenta.
 
+## 7. Dificultad y eventos (Fase 3)
+
+Implementado. Los valores de dificultad están en `src/data/balance.ts` y el catálogo de eventos en `src/data/eventos.ts`. Los marcados "A calibrar" pasaron una primera calibración con el bot y siguen abiertos a ajuste con jugadores.
+
+### Qué elige el jugador al empezar
+
+| # | Regla | Valor | Estado |
+|---|---|---|---|
+| 35 | Cursos | 3 o 4; desaparece la opción de 2 | Cerrada |
+| 36 | Dificultad | Relajado, Normal o Exigente, independiente del número de cursos | Cerrada |
+| 37 | Qué cambia la dificultad | Solo los eventos: frecuencia, proporción de buenos y malos, y peso. Las fórmulas son las mismas en los tres niveles | Cerrada |
+| 38 | Beca | Se puede obtener con 3 o con 4 cursos; con 4 el rendimiento exigido es menor | Cerrada |
+
+Umbral de la beca (sustituye a la regla 31):
+
+| Cursos | Rendimiento mínimo | Estado |
+|---|---|---|
+| 3 | 85 | Calibrada en Fase 3 |
+| 4 | 84 | Calibrada en Fase 3 |
+
+Las demás condiciones de la beca no cambian: todos los cursos aprobados y ningún parcial por debajo de 10.5.
+
+El valor inicial para 4 cursos era 80, pero con él el bot obtenía la beca en todas las partidas: su rendimiento con 4 cursos se concentra en torno a 84. Con 84 la beca queda igual de exigente con 3 que con 4 cursos.
+
+### Niveles
+
+| Nivel | Probabilidad de evento por semana | Probabilidad de que sea bueno | Peso de los buenos | Peso de los malos |
+|---|---|---|---|---|
+| Relajado | 45 % | 65 % | ×1.25 | ×0.75 |
+| Normal | 50 % | 50 % | ×1 | ×1 |
+| Exigente | 60 % | 35 % | ×0.75 | ×1.25 |
+
+Todos los valores de la tabla están a calibrar.
+
+### Cómo aparecen los eventos
+
+| # | Regla | Valor | Estado |
+|---|---|---|---|
+| 39 | Sorteo | Al empezar cada semana se tira si hay evento, con la probabilidad del nivel; si lo hay, se tira si es bueno o malo y se elige uno al azar de ese tipo | Cerrada |
+| 40 | Repetición | Un evento no se repite dentro de la misma partida | Cerrada |
+| 41 | Límites por partida | Entre 4 y 9 eventos; nunca más de 2 malos seguidos | A calibrar |
+| 42 | Semanas sin evento | La semana 1; y en semana de parcial no salen eventos malos | Cerrada |
+| 43 | Crisis | Un evento no puede provocar una crisis por sí solo: el estrés que suma se detiene en 79 | Cerrada |
+| 44 | Semilla | El sorteo usa el generador de la partida: misma semilla y mismas decisiones dan los mismos eventos | Cerrada |
+| 45 | Catálogo | 20 eventos: 10 buenos y 10 malos | Cerrada |
+| 45a | Curso afectado | Si el evento menciona un curso, se sortea cuál al aparecer; el jugador no lo elige | Cerrada |
+| 45b | Semana perdida | Una semana perdida por colapso no trae evento | Cerrada |
+
+La probabilidad da variedad; los límites de la regla 41 evitan que una partida en Relajado salga peor que una en Exigente por pura suerte.
+
+### Dilemas
+
+| # | Regla | Valor | Estado |
+|---|---|---|---|
+| 46 | Forma del evento | Un dilema: una situación con dos opciones, cada una con su beneficio y su coste | Cerrada |
+| 47 | Bueno o malo | En un evento bueno las dos opciones benefician y se elige cuál; en uno malo las dos cuestan y se elige cuál | Cerrada |
+| 48 | Cuándo se resuelve | Antes de planificar la semana; el jugador no puede decidir los cursos hasta elegir | Cerrada |
+| 49 | Qué puede tocar | Estrés, horas de estudio de un curso, trabajos de un curso, o un modificador que dura solo esa semana | Cerrada |
+| 50 | Peso por dificultad | En un evento bueno el peso del nivel multiplica lo que beneficia; en uno malo, lo que perjudica. La otra parte no cambia, y los trabajos nunca se escalan | Cerrada |
+
+Ejemplos del catálogo, con los valores del nivel Normal:
+
+| Evento | Tipo | Opción A | Opción B |
+|---|---|---|---|
+| Feriado largo | Bueno | Desconectar: −10 de estrés | Adelantar un curso: +6 horas |
+| Grupo de estudio | Bueno | Ir: +8 horas en un curso, +2 de estrés | Pedir los apuntes: +4 horas, sin estrés |
+| El profesor perdona un trabajo | Bueno | Cuenta como entregado en un curso | Lo entregas igual: +3 horas en ese curso |
+| Semana de mala salud | Malo | Reposar: esta semana las horas rinden un 30 % menos | Aguantar: +10 de estrés |
+| Trabajo sorpresa | Malo | Hacerlo: +6 de estrés | No hacerlo: −1 trabajo en ese curso |
+| Problemas de transporte | Malo | Madrugar: +5 de estrés | Faltar a clase: −5 horas en un curso |
+
+### Cómo se muestra
+
+- Tras cerrar una semana, si la siguiente trae evento, aparece una card con el título, la situación y las dos opciones con sus efectos.
+- Al elegir, la card se cierra y deja un acceso en una esquina con el título del evento ("Ver evento: Feriado largo"), que la vuelve a abrir en modo de lectura con la opción elegida.
+- El calendario marca las semanas que tuvieron evento, y el detalle de la semana lo incluye.
+- Una semana sin evento no muestra nada.
+
+### Cómo está hecho
+
+- Una fase `evento` entre el cierre de una semana y la planificación de la siguiente, en la que la partida espera la elección del jugador.
+- El estado guarda el evento de la semana en curso, la opción elegida y el modificador de horas activo.
+- El historial registra el evento y la elección de cada semana.
+- Una partida creada sin dificultad no tiene eventos; así se mantienen los tests del núcleo y la simulación base.
+
+### Resultado del bot
+
+Con la estrategia adaptativa variada, 3 000 partidas por casilla (`npm run sim`):
+
+| | Sin eventos | Relajado | Normal | Exigente |
+|---|---|---|---|---|
+| 3 cursos: beca | 24 % | 72 % | 39 % | 8 % |
+| 4 cursos: beca | 38 % | 76 % | 46 % | 13 % |
+| 4 cursos: aprueba | 100 % | 100 % | 100 % | 98 % |
+
+El rendimiento medio baja de Relajado a Exigente con 3 y con 4 cursos, que es el criterio que comprueba el bot. Un jugador que elige bien en los dilemas saca en Normal más provecho de los eventos buenos que daño de los malos; por eso Normal da algo más de beca que jugar sin eventos.
+
+### Fuera de esta primera versión
+
+- Eventos buenos ganados por buen rendimiento en un parcial.
+- Eventos encadenados o con consecuencias varias semanas después.
+- Duración de la partida configurable.
+
 ## Pendiente
 
 - [ ] Que otra persona lea este documento y explique cómo se gana y cómo se pierde (puerta de salida de la Fase 0, aplazada).
+- [ ] Probar con jugadores los tres niveles de dificultad y los textos de los eventos.

@@ -1180,6 +1180,80 @@ thead th {
   color: var(--tenue);
 }
 
+/* Evento de la semana */
+
+.modal.evento {
+  border-top-color: var(--verde);
+}
+
+.modal.evento.malo {
+  border-top-color: var(--amarilla);
+}
+
+.modal.evento h2 {
+  font-size: var(--t-xl);
+  margin-bottom: 8px;
+}
+
+.antetitulo {
+  margin: 0 0 4px;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+
+.opciones-evento {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: var(--espacio) 0;
+  padding: 0;
+}
+
+.opcion-evento {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--panel);
+  text-align: left;
+  box-shadow: var(--sombra);
+}
+
+button.opcion-evento:hover:not(:disabled) {
+  border-color: var(--acento);
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-alta);
+}
+
+.opcion-evento.elegida {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.opcion-evento.descartada {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.ver-evento {
+  min-height: 30px;
+  margin-top: 6px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: var(--t-s);
+  white-space: nowrap;
+}
+
+.calendario .con-evento {
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
 /* Animaciones */
 
 .destello {

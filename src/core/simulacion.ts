@@ -1,10 +1,17 @@
 // Reglas del juego como funciones puras: reciben un estado y devuelven otro.
 // Especificación: REGLAS.md. Números: src/data/balance.ts.
 
-import { BALANCE, type DatosAsignatura, type DecisionId, type ZonaId } from '../data/balance.ts'
+import {
+  BALANCE,
+  type DatosAsignatura,
+  type DecisionId,
+  type DificultadId,
+  type ZonaId,
+} from '../data/balance.ts'
+import { EVENTOS, eventoPorId, type EfectoEvento } from '../data/eventos.ts'
 import { siguiente } from './rng.ts'
 
-export type Fase = 'decision' | 'crisis' | 'fin'
+export type Fase = 'decision' | 'evento' | 'crisis' | 'fin'
 export type OpcionCrisis = 'forzar' | 'reposo' | 'abandono'
 export type SemanaPerdida = 'colapso' | 'reposo'
 export type FinalId = 'beca' | 'aprobado' | 'aprobado_parcial' | 'desaprobado' | 'abandono'
@@ -20,6 +27,22 @@ export interface Asignatura {
   notas: number[]
 }
 
+/** Evento de una semana: cuál salió, a qué curso afecta y qué opción se eligió. */
+export interface EventoActivo {
+  id: string
+  /** Índice del curso al que se refiere el evento, si lo menciona. */
+  curso: number
+  /** Índice de la opción elegida; null mientras el jugador no decide. */
+  elegida: number | null
+}
+
+/** Efectos de un evento que duran solo la semana en curso. */
+export interface Modificadores {
+  multHoras: number
+}
+
+const SIN_MODIFICADORES: Modificadores = { multHoras: 1 }
+
 export interface RegistroSemana {
   semana: number
   /** null si la semana se perdió por colapso; en un reposo son las decisiones anuladas. */
@@ -32,6 +55,8 @@ export interface RegistroSemana {
   notas: number[] | null
   /** Cómo se llegó a cada nota, en el mismo orden; null si no hubo parcial. */
   detalle: DetalleNota[] | null
+  /** Evento que trajo la semana, con la opción elegida; null si no hubo. */
+  evento: EventoActivo | null
 }
 
 export interface DetalleNota {
@@ -59,6 +84,11 @@ export interface Estado {
   fase: Fase
   crisisArmada: boolean
   abandono: boolean
+  /** Nivel de dificultad; null juega sin eventos (pruebas y simulación base). */
+  dificultad: DificultadId | null
+  /** Evento de la semana en curso, resuelto o por resolver. */
+  evento: EventoActivo | null
+  modificadores: Modificadores
   asignaturas: Asignatura[]
   /** Decisiones ya aplicadas de la semana en curso, mientras se resuelve una crisis. */
   decisionesEnCurso: DecisionId[] | null
@@ -112,7 +142,11 @@ export function esRutina(e: Estado, decisiones: DecisionId[]): boolean {
 export function efectoDecision(e: Estado, decision: DecisionId, rutina = false): Efecto {
   const d = BALANCE.decisiones[decision]
   return {
-    hor: d.hor * BALANCE.zonas[zonaDe(e.estres)].multHor * (rutina ? BALANCE.rutina.multHor : 1),
+    hor:
+      d.hor *
+      BALANCE.zonas[zonaDe(e.estres)].multHor *
+      (rutina ? BALANCE.rutina.multHor : 1) *
+      e.modificadores.multHoras,
     ent: parcialDeSemana(e.semana) === -1 ? d.ent : 0,
     estres: d.estres,
   }
@@ -181,7 +215,11 @@ export function redondearPromedio(promedio: number): number {
   return Math.floor(promedio + 0.5 + 1e-9)
 }
 
-export function crearPartida(semilla: number, cursadas: readonly DatosAsignatura[]): Estado {
+export function crearPartida(
+  semilla: number,
+  cursadas: readonly DatosAsignatura[],
+  dificultad: DificultadId | null = null,
+): Estado {
   if (cursadas.length < BALANCE.asignaturasMin || cursadas.length > BALANCE.asignaturasMax) {
     throw new Error(
       `Se cursan entre ${BALANCE.asignaturasMin} y ${BALANCE.asignaturasMax} asignaturas`,
@@ -195,6 +233,9 @@ export function crearPartida(semilla: number, cursadas: readonly DatosAsignatura
     fase: 'decision',
     crisisArmada: true,
     abandono: false,
+    dificultad,
+    evento: null,
+    modificadores: SIN_MODIFICADORES,
     asignaturas: cursadas.map((datos) => ({ ...datos, horTramo: 0, ent: 0, notas: [] })),
     decisionesEnCurso: null,
     asignaturasPrevias: null,
@@ -236,6 +277,7 @@ export function resolverCrisis(e: Estado, opcion: OpcionCrisis): Estado {
       estres: e.estres,
       notas: null,
       detalle: null,
+      evento: e.evento,
     }
     return {
       ...e,
@@ -258,6 +300,59 @@ export function resolverCrisis(e: Estado, opcion: OpcionCrisis): Estado {
     return cerrarSemana(rearmar(anulada), 'reposo', opcion)
   }
   return cerrarSemana(e, null, opcion)
+}
+
+/**
+ * Efecto de una opción del evento en curso, ya con el peso de la dificultad:
+ * en un evento bueno pesa más lo que beneficia; en uno malo, lo que perjudica.
+ */
+export function efectoDeOpcion(e: Estado, opcion: number): EfectoEvento | null {
+  const nivel = e.dificultad && BALANCE.dificultades[e.dificultad]
+  const datos = e.evento && eventoPorId(e.evento.id)
+  const base = datos?.opciones[opcion]?.efecto
+  if (!nivel || !datos || !base) return null
+
+  const peso = (beneficia: boolean) =>
+    datos.tipo === 'bueno' ? (beneficia ? nivel.pesoBueno : 1) : beneficia ? 1 : nivel.pesoMalo
+  const efecto: EfectoEvento = {}
+  if (base.estres !== undefined) efecto.estres = Math.round(base.estres * peso(base.estres < 0))
+  if (base.horas !== undefined) efecto.horas = base.horas * peso(base.horas > 0)
+  if (base.trabajos !== undefined) efecto.trabajos = base.trabajos
+  if (base.multHoras !== undefined) {
+    efecto.multHoras = 1 + (base.multHoras - 1) * peso(base.multHoras > 1)
+  }
+  return efecto
+}
+
+/** Elige una opción del evento de la semana. Fuera de la fase de evento no hace nada. */
+export function resolverEvento(e: Estado, opcion: number): Estado {
+  const efecto = efectoDeOpcion(e, opcion)
+  if (e.fase !== 'evento' || !e.evento || !efecto) return e
+
+  let estres = e.estres + (efecto.estres ?? 0)
+  // Un evento no provoca una crisis por sí solo: lo que suma se detiene justo antes del umbral.
+  if (estres > e.estres)
+    estres = Math.min(estres, Math.max(e.estres, BALANCE.crisis.umbralDisparo - 1))
+  estres = clamp(estres, BALANCE.estresMin, BALANCE.estresMax)
+
+  const afectado = e.evento.curso
+  const asignaturas = e.asignaturas.map((a, i) =>
+    i === afectado
+      ? {
+          ...a,
+          horTramo: Math.max(0, a.horTramo + (efecto.horas ?? 0)),
+          ent: clamp(a.ent + (efecto.trabajos ?? 0), 0, BALANCE.entregasPosibles),
+        }
+      : a,
+  )
+  return rearmar({
+    ...e,
+    estres,
+    asignaturas,
+    modificadores: { multHoras: efecto.multHoras ?? 1 },
+    evento: { ...e.evento, elegida: opcion },
+    fase: 'decision',
+  })
 }
 
 export function resultado(e: Estado): Resultado {
@@ -291,11 +386,8 @@ export function resultado(e: Estado): Resultado {
   const sinParcialBajo = e.asignaturas.every((a) =>
     a.notas.every((nota) => nota >= BALANCE.beca.parcialMin),
   )
-  const beca =
-    todas &&
-    asignaturas.length === BALANCE.beca.asignaturasRequeridas &&
-    ovr >= BALANCE.beca.ovrMin &&
-    sinParcialBajo
+  const ovrBeca = BALANCE.beca.ovrMinPorCursos[asignaturas.length]
+  const beca = todas && ovrBeca !== undefined && ovr >= ovrBeca && sinParcialBajo
 
   let final: FinalId
   if (e.abandono) final = 'abandono'
@@ -323,7 +415,40 @@ function cerrarSemana(
     if (!colapso) break
     e = registrar(siguienteEstado, null, 'colapso', null)
   }
-  return e
+  return e.fase === 'fin' ? e : sortearEvento(e)
+}
+
+/** Al empezar una semana, tira si trae evento y cuál; si lo trae, la partida espera la elección. */
+function sortearEvento(e: Estado): Estado {
+  const nivel = e.dificultad && BALANCE.dificultades[e.dificultad]
+  if (!nivel) return e
+  const limites = BALANCE.eventos
+  const previos = e.historial.flatMap((r) => (r.evento ? [eventoPorId(r.evento.id)] : []))
+  if (previos.length >= limites.maxPorPartida) return e
+
+  let { rng } = e
+  let tirada: number
+  ;[tirada, rng] = siguiente(rng)
+  // Si las semanas que quedan son justas para llegar al mínimo, el evento es seguro.
+  const semanasRestantes = BALANCE.semanasConDecision - e.semana + 1
+  const forzado = limites.minPorPartida - previos.length >= semanasRestantes
+  if (!forzado && tirada >= nivel.probEvento) return { ...e, rng }
+
+  ;[tirada, rng] = siguiente(rng)
+  let malosSeguidos = 0
+  for (let i = previos.length - 1; i >= 0 && previos[i]!.tipo === 'malo'; i--) malosSeguidos++
+  const soloBueno = parcialDeSemana(e.semana) !== -1 || malosSeguidos >= limites.maxMalosSeguidos
+  const tipo = soloBueno || tirada < nivel.probBueno ? 'bueno' : 'malo'
+
+  const usados = new Set(previos.map((p) => p.id))
+  const candidatos = EVENTOS.filter((ev) => ev.tipo === tipo && !usados.has(ev.id))
+  ;[tirada, rng] = siguiente(rng)
+  const elegido = candidatos[Math.floor(tirada * candidatos.length)]
+  // El catálogo tiene más eventos de cada tipo que el máximo por partida; si faltaran, no hay evento.
+  if (!elegido) return { ...e, rng }
+  ;[tirada, rng] = siguiente(rng)
+  const curso = Math.floor(tirada * e.asignaturas.length)
+  return { ...e, rng, fase: 'evento', evento: { id: elegido.id, curso, elegida: null } }
 }
 
 /** Con estrés de crisis al empezar la semana, tira si el alumno colapsa y la pierde. */
@@ -378,6 +503,7 @@ function registrar(
     estres: e.estres,
     notas,
     detalle,
+    evento: e.evento,
   }
   const semana = e.semana + 1
   return {
@@ -388,6 +514,8 @@ function registrar(
     fase: semana > BALANCE.semanasConDecision ? 'fin' : 'decision',
     decisionesEnCurso: null,
     asignaturasPrevias: null,
+    evento: null,
+    modificadores: SIN_MODIFICADORES,
     historial: [...e.historial, registro],
   }
 }

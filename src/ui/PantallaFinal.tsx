@@ -9,6 +9,7 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
   const final = FINALES[r.final]
   const crisis = estado.historial.filter((s) => s.crisis !== null).length
   const perdidas = estado.historial.filter((s) => s.perdida !== null).length
+  const eventos = estado.historial.filter((s) => s.evento !== null).length
 
   return (
     <main className="pantalla">
@@ -63,14 +64,15 @@ export function PantallaFinal({ estado }: { estado: Estado }) {
       </table>
 
       <p className="nota">
-        Semanas jugadas: {estado.historial.length} · Crisis: {crisis} · Semanas perdidas: {perdidas}{' '}
-        · Semilla: {estado.semilla}
+        {estado.dificultad && `Dificultad: ${BALANCE.dificultades[estado.dificultad].nombre} · `}
+        Eventos: {eventos} · Crisis: {crisis} · Semanas perdidas: {perdidas} · Semilla:{' '}
+        {estado.semilla}
       </p>
       <p className="nota">
         Un curso se aprueba con final {BALANCE.finalAprobatorio} o más y{' '}
-        {BALANCE.entregasRegularidad} trabajos entregados. La beca pide rendimiento{' '}
-        {BALANCE.beca.ovrMin}, los {BALANCE.beca.asignaturasRequeridas} cursos aprobados y ningún
-        parcial por debajo de {BALANCE.beca.parcialMin}.
+        {BALANCE.entregasRegularidad} trabajos entregados. Con {estado.asignaturas.length} cursos,
+        la beca pide rendimiento {BALANCE.beca.ovrMinPorCursos[estado.asignaturas.length]}, todos
+        aprobados y ningún parcial por debajo de {BALANCE.beca.parcialMin}.
       </p>
 
       <button type="button" className="principal" onClick={salir}>

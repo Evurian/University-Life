@@ -81,9 +81,9 @@ describe('crearPartida', () => {
   })
 
   it('rechaza menos de 2 o más de 4 asignaturas', () => {
-    expect(() => crearPartida(1, CURSADAS.slice(0, 1))).toThrow()
+    expect(() => crearPartida(1, CURSADAS.slice(0, 2))).toThrow()
     expect(() => crearPartida(1, [...CURSADAS, ...CURSADAS.slice(0, 1)])).toThrow()
-    expect(crearPartida(1, CURSADAS.slice(0, 2)).asignaturas).toHaveLength(2)
+    expect(crearPartida(1, CURSADAS.slice(0, 3)).asignaturas).toHaveLength(3)
   })
 })
 
@@ -366,13 +366,13 @@ describe('resultado', () => {
     expect(resultado(conAsignaturas(cuatro))).toMatchObject({ ovr: 85, final: 'beca' })
   })
 
-  it('no da beca con menos de 4 asignaturas', () => {
-    const tres = [0, 1, 2].map(() => asignatura([20, 20, 20]))
-    expect(resultado(conAsignaturas(tres)).final).toBe('aprobado')
+  it('no da beca con un número de asignaturas que no se puede cursar', () => {
+    const dos = [0, 1].map(() => asignatura([20, 20, 20]))
+    expect(resultado(conAsignaturas(dos)).final).toBe('aprobado')
   })
 
   it('no da beca con OVR bajo ni con un parcial por debajo de 10.5', () => {
-    const ovrBajo = [0, 1, 2, 3].map(() => asignatura([16, 16, 16]))
+    const ovrBajo = [0, 1, 2, 3].map(() => asignatura([16.5, 16.5, 16.5]))
     expect(resultado(conAsignaturas(ovrBajo)).final).toBe('aprobado')
 
     const parcialBajo = [0, 1, 2].map(() => asignatura([20, 20, 20]))

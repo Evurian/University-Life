@@ -11,17 +11,21 @@ export function PanelAlumno({ estado }: { estado: Estado }) {
     .filter((p): p is number => p !== null)
   const general = promedios.length ? promedios.reduce((a, b) => a + b, 0) / promedios.length : null
 
-  // En plena crisis la semana aún no se cerró: el último registro es el de la semana anterior.
+  // El cambio se mide entre cierres de semana, para no mezclarlo con el efecto de un evento.
+  // En plena crisis la semana aún no se cerró: se compara con el último cierre.
   const cierres = estado.historial
-  const anterior = estado.fase === 'crisis' ? cierres.at(-1) : cierres.at(-2)
-  const previo =
-    estado.fase === 'crisis' || cierres.length
-      ? (anterior?.estres ?? BALANCE.estresInicial)
-      : undefined
+  const enCrisis = estado.fase === 'crisis'
+  const hasta = enCrisis ? estado.estres : cierres.at(-1)?.estres
+  const desde = (enCrisis ? cierres.at(-1) : cierres.at(-2))?.estres ?? BALANCE.estresInicial
+  const cambio = hasta === undefined ? 0 : hasta - desde
 
   return (
     <aside className="panel estado" aria-label="Estado del alumno">
-      <BarraEstres estres={estado.estres} previo={previo} />
+      <BarraEstres
+        estres={estado.estres}
+        cambio={cambio}
+        cuando={enCrisis ? 'esta semana' : 'la semana pasada'}
+      />
       {!estado.crisisArmada && (
         <p className="nota">Sin nueva crisis hasta bajar de {BALANCE.crisis.umbralRearme} %.</p>
       )}

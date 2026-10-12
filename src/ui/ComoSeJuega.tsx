@@ -40,6 +40,10 @@ export function ComoSeJuega() {
           estudias; al llegar a {crisis.umbralDisparo} % entras en crisis.
         </li>
         <li>
+          <strong>Eventos:</strong> algunas semanas empiezan con un imprevisto y dos formas de
+          afrontarlo. La dificultad decide cuántos son buenos y cuántos malos.
+        </li>
+        <li>
           <strong>Cada curso exige distinto:</strong> los exigentes necesitan más horas para la
           misma nota.
         </li>

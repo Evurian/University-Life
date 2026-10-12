@@ -202,6 +202,13 @@ export function PanelDecision({ estado }: { estado: Estado }) {
         </p>
       )}
 
+      {estado.modificadores.multHoras !== 1 && (
+        <p className="aviso">
+          Por el evento de esta semana, las horas de estudio rinden{' '}
+          {conSigno(Math.round((estado.modificadores.multHoras - 1) * 100))} %.
+        </p>
+      )}
+
       {vista === 'todos' ? (
         <div className="lista-cursos">{estado.asignaturas.map((_, i) => curso(i))}</div>
       ) : (

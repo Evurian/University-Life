@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import type { Estado } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
+import { eventoPorId } from '../data/eventos.ts'
 import { Calendario, LeyendaCalendario } from './Calendario.tsx'
 import { ModalCrisis } from './ModalCrisis.tsx'
+import { ModalEvento } from './ModalEvento.tsx'
 import { PanelAlumno } from './PanelAlumno.tsx'
 import { PanelDecision } from './PanelDecision.tsx'
 import { DetalleSemana, ResumenSemana } from './ResumenSemana.tsx'
@@ -17,16 +19,31 @@ function proximoParcial(semana: number): string {
 
 export function Dashboard({ estado }: { estado: Estado }) {
   const [vista, setVista] = useState<number | null>(null)
+  // Semana cuyo evento, ya resuelto, se está volviendo a mirar.
+  const [eventoAbierto, setEventoAbierto] = useState<number | null>(null)
   const enCrisis = estado.fase === 'crisis'
+  const eventoPendiente = estado.fase === 'evento'
+  const eventoResuelto = estado.evento !== null && estado.evento.elegida !== null
+  const mirandoEvento = eventoResuelto && eventoAbierto === estado.semana
+
   return (
     <>
-      <div className="dashboard" inert={enCrisis}>
+      <div className="dashboard" inert={enCrisis || eventoPendiente || mirandoEvento}>
         <header className="cabecera">
           <div>
             <h1>
               Semana {estado.semana} de {BALANCE.semanasTotales}
             </h1>
             <p className="proximo">{proximoParcial(estado.semana)}</p>
+            {eventoResuelto && (
+              <button
+                type="button"
+                className="ver-evento"
+                onClick={() => setEventoAbierto(estado.semana)}
+              >
+                Ver evento: {eventoPorId(estado.evento!.id).titulo}
+              </button>
+            )}
           </div>
           <div>
             <Calendario estado={estado} vista={vista} onVer={setVista} />
@@ -43,6 +60,9 @@ export function Dashboard({ estado }: { estado: Estado }) {
         </main>
       </div>
       {enCrisis && <ModalCrisis estado={estado} />}
+      {(eventoPendiente || mirandoEvento) && (
+        <ModalEvento estado={estado} onCerrar={() => setEventoAbierto(null)} />
+      )}
     </>
   )
 }

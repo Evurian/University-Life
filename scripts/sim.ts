@@ -7,17 +7,19 @@
 import {
   aplicarDecisiones,
   crearPartida,
+  efectoDeOpcion,
   entregasRestantes,
   esRutina,
   parcialDeSemana,
   resolverCrisis,
+  resolverEvento,
   resultado,
   type Estado,
   type FinalId,
   type OpcionCrisis,
 } from '../src/core/simulacion.ts'
 import { siguiente } from '../src/core/rng.ts'
-import { BALANCE, type DecisionId } from '../src/data/balance.ts'
+import { BALANCE, type DecisionId, type DificultadId } from '../src/data/balance.ts'
 
 interface Estrategia {
   nombre: string
@@ -138,7 +140,27 @@ const ESTRATEGIAS: Estrategia[] = [
   adaptativa('adaptativa (zona amarilla)', BALANCE.zonas.amarilla.hasta),
 ]
 
-function jugar(estrategia: Estrategia, semilla: number) {
+// Valora una opción de evento con una regla simple: el estrés pesa por punto, las horas la mitad,
+// y un trabajo vale mucho solo si al curso todavía le faltan.
+function valorOpcion(e: Estado, opcion: number): number {
+  const efecto = efectoDeOpcion(e, opcion)
+  if (!efecto || !e.evento) return -Infinity
+  const curso = e.asignaturas[e.evento.curso]!
+  const faltan = curso.ent < BALANCE.entregasRegularidad
+  return (
+    -(efecto.estres ?? 0) +
+    0.5 * (efecto.horas ?? 0) +
+    (faltan ? 6 : 0) * (efecto.trabajos ?? 0) +
+    40 * ((efecto.multHoras ?? 1) - 1)
+  )
+}
+
+function jugar(
+  estrategia: Estrategia,
+  semilla: number,
+  cursos: number = CURSADAS.length,
+  dificultad: DificultadId | null = null,
+) {
   // El azar de la estrategia usa un flujo propio para no alterar el de la partida.
   let rng = semilla ^ 0x5bd1e995
   const azar = () => {
@@ -146,18 +168,27 @@ function jugar(estrategia: Estrategia, semilla: number) {
     ;[valor, rng] = siguiente(rng)
     return valor
   }
-  let e = crearPartida(semilla, CURSADAS)
+  let e = crearPartida(semilla, CURSADAS.slice(0, cursos), dificultad)
   let crisis = 0
   while (e.fase !== 'fin') {
     if (e.fase === 'crisis') {
       crisis++
       e = resolverCrisis(e, estrategia.crisis(e, azar))
+    } else if (e.fase === 'evento') {
+      const opcion =
+        estrategia === aleatoria
+          ? Math.floor(azar() * 2)
+          : valorOpcion(e, 0) >= valorOpcion(e, 1)
+            ? 0
+            : 1
+      e = resolverEvento(e, opcion)
     } else {
       e = aplicarDecisiones(e, estrategia.decidir(e, azar))
     }
   }
   const perdidas = e.historial.filter((r) => r.perdida !== null).length
-  return { ...resultado(e), crisis, perdidas }
+  const eventos = e.historial.filter((r) => r.evento !== null).length
+  return { ...resultado(e), crisis, perdidas, eventos }
 }
 
 const partidas = Number(process.argv[2] ?? 10_000)
@@ -230,6 +261,46 @@ const criterios: [string, boolean][] = [
     mejorMixta.finales.beca > 0,
   ],
 ]
+
+// Dificultad: las mismas estrategias con eventos, por nivel y número de cursos.
+const NIVELES = Object.keys(BALANCE.dificultades) as DificultadId[]
+const muestra = ESTRATEGIAS.filter((est) =>
+  ['solo balanceada (reposo)', 'plan fijo', 'adaptativa variada (zona verde)'].includes(est.nombre),
+)
+const porNivel: Record<string, Record<string, string>> = {}
+const aprueba: Record<string, number> = {}
+for (const cursos of [3, 4]) {
+  for (const nivel of [null, ...NIVELES]) {
+    for (const estrategia of muestra) {
+      let ok = 0
+      let beca = 0
+      let ovr = 0
+      let eventos = 0
+      for (let semilla = 1; semilla <= partidas; semilla++) {
+        const r = jugar(estrategia, semilla, cursos, nivel)
+        if (r.final === 'beca') beca++
+        if (r.final === 'beca' || r.final === 'aprobado') ok++
+        ovr += r.ovr
+        eventos += r.eventos
+      }
+      const clave = `${cursos} cursos · ${nivel ?? 'sin eventos'}`
+      porNivel[clave] ??= { eventos: (eventos / partidas).toFixed(1) }
+      porNivel[clave][estrategia.nombre] =
+        `${pct(ok)} aprueba · ${pct(beca)} beca · ${(ovr / partidas).toFixed(0)}`
+      if (estrategia.nombre.startsWith('adaptativa')) aprueba[`${cursos}:${nivel}`] = ovr / partidas
+    }
+  }
+}
+console.log('\nDificultad y eventos (aprueba · beca · rendimiento medio)')
+console.table(porNivel)
+
+for (const cursos of [3, 4]) {
+  const [relajado, normal, exigente] = NIVELES.map((n) => aprueba[`${cursos}:${n}`]!)
+  criterios.push([
+    `Con ${cursos} cursos, el rendimiento baja de Relajado a Exigente (${relajado!.toFixed(1)} > ${normal!.toFixed(1)} > ${exigente!.toFixed(1)})`,
+    relajado! > normal! && normal! > exigente!,
+  ])
+}
 
 console.log('\nCriterios de balance')
 for (const [texto, cumple] of criterios) console.log(`${cumple ? '  OK  ' : ' FALLA'}  ${texto}`)

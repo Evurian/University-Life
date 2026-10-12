@@ -3,15 +3,27 @@ import {
   aplicarDecisiones,
   crearPartida,
   resolverCrisis,
+  resolverEvento,
   resultado,
   type Estado,
   type OpcionCrisis,
 } from '../core/simulacion.ts'
 import { siguiente } from '../core/rng.ts'
-import { BALANCE, type DecisionId } from '../data/balance.ts'
+import { BALANCE, type DecisionId, type DificultadId } from '../data/balance.ts'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
 const OPCIONES: OpcionCrisis[] = ['forzar', 'forzar', 'reposo', 'reposo', 'abandono']
+const DIFICULTADES: (DificultadId | null)[] = [null, 'relajado', 'normal', 'exigente']
+
+/** Una decisión por curso, una opción de crisis o el índice de una opción de evento. */
+type Accion = DecisionId[] | OpcionCrisis | number
+
+const aplicar = (e: Estado, accion: Accion): Estado =>
+  typeof accion === 'number'
+    ? resolverEvento(e, accion)
+    : typeof accion === 'string'
+      ? resolverCrisis(e, accion)
+      : aplicarDecisiones(e, accion)
 
 function congelar<T>(valor: T): T {
   if (typeof valor === 'object' && valor !== null && !Object.isFrozen(valor)) {
@@ -24,7 +36,7 @@ function congelar<T>(valor: T): T {
 /** Juega una partida al azar. Cada estado se congela: si el núcleo mutara su entrada, lanzaría. */
 function partidaAlAzar(semilla: number): {
   estados: Estado[]
-  acciones: (DecisionId[] | OpcionCrisis)[]
+  acciones: Accion[]
 } {
   let rng = semilla * 7919
   const azar = (n: number) => {
@@ -32,17 +44,18 @@ function partidaAlAzar(semilla: number): {
     ;[valor, rng] = siguiente(rng)
     return Math.floor(valor * n)
   }
-  let e = congelar(crearPartida(semilla, BALANCE.asignaturas.slice(0, 2 + azar(3))))
+  const cursos = BALANCE.asignaturas.slice(0, 3 + azar(2))
+  let e = congelar(crearPartida(semilla, cursos, DIFICULTADES[azar(DIFICULTADES.length)]!))
   const estados = [e]
-  const acciones: (DecisionId[] | OpcionCrisis)[] = []
+  const acciones: Accion[] = []
   while (e.fase !== 'fin') {
-    const accion =
-      e.fase === 'crisis'
-        ? OPCIONES[azar(OPCIONES.length)]!
-        : e.asignaturas.map(() => DECISIONES[azar(DECISIONES.length)]!)
-    e = congelar(
-      typeof accion === 'string' ? resolverCrisis(e, accion) : aplicarDecisiones(e, accion),
-    )
+    const accion: Accion =
+      e.fase === 'evento'
+        ? azar(2)
+        : e.fase === 'crisis'
+          ? OPCIONES[azar(OPCIONES.length)]!
+          : e.asignaturas.map(() => DECISIONES[azar(DECISIONES.length)]!)
+    e = congelar(aplicar(e, accion))
     acciones.push(accion)
     estados.push(e)
   }
@@ -103,7 +116,7 @@ describe('invariantes en partidas al azar', () => {
       expect(r.ovr).toBeLessThanOrEqual(BALANCE.ovr.max)
       expect(r.final === 'abandono').toBe(fin.abandono)
       if (r.final === 'beca') {
-        expect(fin.asignaturas).toHaveLength(BALANCE.beca.asignaturasRequeridas)
+        expect(BALANCE.beca.ovrMinPorCursos[fin.asignaturas.length]).toBeDefined()
         expect(r.asignaturas.every((a) => a.aprobada)).toBe(true)
       }
       for (const a of r.asignaturas) {
@@ -119,7 +132,7 @@ describe('invariantes en partidas al azar', () => {
       let e: Estado = JSON.parse(JSON.stringify(estados[mitad]))
       expect(e).toEqual(estados[mitad])
       for (const accion of acciones.slice(mitad)) {
-        e = typeof accion === 'string' ? resolverCrisis(e, accion) : aplicarDecisiones(e, accion)
+        e = aplicar(e, accion)
       }
       expect(e).toEqual(estados.at(-1))
     }

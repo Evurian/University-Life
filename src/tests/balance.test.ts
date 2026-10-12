@@ -34,6 +34,8 @@ describe('BALANCE', () => {
 
   it('la beca es alcanzable dentro de la escala de OVR', () => {
     expect(BALANCE.ovr.factorPromedio * BALANCE.nota.max).toBe(BALANCE.ovr.max)
-    expect(BALANCE.beca.ovrMin).toBeLessThanOrEqual(BALANCE.ovr.max)
+    for (const cursos of [BALANCE.asignaturasMin, BALANCE.asignaturasMax]) {
+      expect(BALANCE.beca.ovrMinPorCursos[cursos]).toBeLessThanOrEqual(BALANCE.ovr.max)
+    }
   })
 })

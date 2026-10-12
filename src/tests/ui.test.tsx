@@ -29,12 +29,14 @@ describe('interfaz', () => {
 
     let pasos = 0
     while (!screen.queryByText(/Fin del cuatrimestre/)) {
-      if (screen.queryByRole('dialog')) clic('Reposo forzado')
+      const evento = screen.queryByRole('dialog', { name: /^Evento:/ })
+      if (evento) fireEvent.click(within(evento).getAllByRole('button')[0]!)
+      else if (screen.queryByRole('dialog')) clic('Reposo forzado')
       else {
         clic('Trabajo semanal en todos')
         fireEvent.click(confirmar())
       }
-      expect(++pasos).toBeLessThan(40)
+      expect(++pasos).toBeLessThan(60)
     }
 
     expect(screen.getByText(/Semilla: \d+/)).toBeTruthy()
@@ -58,16 +60,18 @@ describe('interfaz', () => {
     expect(screen.getByText('Cómo se juega').tagName).toBe('SUMMARY')
   })
 
-  it('respeta la cantidad de asignaturas elegida al empezar', () => {
+  it('respeta los cursos y la dificultad elegidos al empezar', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('radio', { name: /^2/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^3 cursos/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^Exigente/ }))
     clic('Empezar')
-    expect(useJuego.getState().estado?.asignaturas).toHaveLength(2)
-    expect(screen.queryByRole('group', { name: 'Física' })).toBeNull()
+    expect(useJuego.getState().estado?.asignaturas).toHaveLength(3)
+    expect(useJuego.getState().estado?.dificultad).toBe('exigente')
+    expect(screen.queryByRole('group', { name: 'Redacción' })).toBeNull()
   })
 
   it('no deja confirmar hasta decidir todas las asignaturas', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     expect(confirmar()).toHaveProperty('disabled', true)
 
@@ -86,7 +90,7 @@ describe('interfaz', () => {
   })
 
   it('muestra cómo cambia la nota estimada al elegir una decisión', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     const fila = screen.getByRole('group', { name: 'Cálculo' })
     expect(fila.textContent).toContain('5.0')
@@ -100,7 +104,7 @@ describe('interfaz', () => {
   })
 
   it('avisa de la rutina al elegir lo mismo en todas y deja de avisar al variar', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     clic('Estudiar a fondo en todos')
     expect(screen.getByText(/Semana de rutina/)).toBeTruthy()
@@ -117,7 +121,7 @@ describe('interfaz', () => {
   })
 
   it('las cards de acción muestran su efecto real de esta semana', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     const fila = screen.getByRole('group', { name: 'Cálculo' })
     const card = within(fila).getByRole('button', { name: 'Estudiar a fondo' })
@@ -136,7 +140,7 @@ describe('interfaz', () => {
   })
 
   it('en la vista de uno a uno se recorren los cursos y se conservan las decisiones', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     clic('Uno a uno')
     expect(screen.getAllByRole('group').filter((g) => g.className.includes('curso'))).toHaveLength(
@@ -172,7 +176,7 @@ describe('interfaz', () => {
   })
 
   it('un doble clic en confirmar avanza una sola semana', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     clic('Descansar en todos')
     fireEvent.click(confirmar())
@@ -182,7 +186,7 @@ describe('interfaz', () => {
   })
 
   it('una semana normal no genera aviso; un parcial muestra sus notas', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     for (let semana = 1; semana <= 4; semana++) {
       clic('Trabajo semanal en todos')
@@ -200,7 +204,7 @@ describe('interfaz', () => {
   })
 
   it('el calendario marca la semana en curso y las ya cerradas', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     expect(screen.getByText('Parcial 1 en 4 semanas')).toBeTruthy()
     clic('Descansar en todos')
@@ -218,7 +222,7 @@ describe('interfaz', () => {
   })
 
   it('al pulsar una semana pasada muestra cómo fue', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     const redaccion = () => screen.getByRole('group', { name: 'Redacción' })
     clic('Estudiar a fondo en todos')
@@ -254,7 +258,7 @@ describe('interfaz', () => {
   })
 
   it('al empezar dice cuántas semanas con trabajo se pueden saltar', () => {
-    useJuego.getState().nueva(4, 1)
+    useJuego.getState().nueva(4, null, 1)
     render(<App />)
     expect(screen.getByRole('group', { name: 'Cálculo' }).textContent).toContain(
       'Puedes saltarte 3 semanas',
@@ -316,5 +320,74 @@ describe('interfaz', () => {
     clic('Abandonar la carrera')
     clic('Confirmar abandono')
     expect(titulo()).toBe('Abandono')
+  })
+
+  describe('eventos', () => {
+    /** Avanza una partida exigente hasta que una semana empieza con evento, y la muestra. */
+    function hastaUnEvento() {
+      for (let semilla = 1; semilla <= 50; semilla++) {
+        useJuego.getState().nueva(4, 'exigente', semilla)
+        useJuego.getState().decidir(['salud', 'salud', 'salud', 'intensivo'])
+        if (useJuego.getState().estado?.fase === 'evento') break
+      }
+      expect(useJuego.getState().estado?.fase).toBe('evento')
+      render(<App />)
+      return screen.getByRole('dialog', { name: /^Evento:/ })
+    }
+
+    it('una semana con evento abre su card y no deja planificar hasta elegir', () => {
+      const card = hastaUnEvento()
+      const opciones = within(card).getAllByRole('button')
+      expect(opciones).toHaveLength(2)
+      expect(card.textContent).toMatch(/estrés|h en|trabajo|Horas de esta semana/)
+      expect(confirmar()).toHaveProperty('disabled', true)
+
+      fireEvent.click(opciones[1]!)
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(useJuego.getState().estado).toMatchObject({ fase: 'decision', semana: 2 })
+      expect(useJuego.getState().estado?.evento?.elegida).toBe(1)
+    })
+
+    it('tras elegir, el evento se puede volver a abrir solo para leerlo', () => {
+      const card = hastaUnEvento()
+      const titulo = card.getAttribute('aria-label')!.replace('Evento: ', '')
+      fireEvent.click(within(card).getAllByRole('button')[0]!)
+
+      clic(`Ver evento: ${titulo}`)
+      const abierta = screen.getByRole('dialog', { name: `Evento: ${titulo}` })
+      expect(abierta.textContent).toContain('Lo que elegiste')
+      expect(within(abierta).getAllByRole('button')).toHaveLength(1)
+      const antes = useJuego.getState().estado
+
+      clic('Cerrar')
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(useJuego.getState().estado).toBe(antes)
+    })
+
+    it('el evento queda en el calendario y en el detalle de su semana', () => {
+      const card = hastaUnEvento()
+      const titulo = card.getAttribute('aria-label')!.replace('Evento: ', '')
+      fireEvent.click(within(card).getAllByRole('button')[0]!)
+      clic('Descansar en todos')
+      fireEvent.click(confirmar())
+      const pendiente = screen.queryByRole('dialog', { name: /^Evento:/ })
+      if (pendiente) fireEvent.click(within(pendiente).getAllByRole('button')[0]!)
+
+      clic(/^Semana 2,/)
+      const detalle = screen.getByRole('region', { name: 'Semana 2' })
+      expect(detalle.textContent).toContain(`Evento: ${titulo}`)
+      expect(detalle.textContent).toContain('Elegiste')
+    })
+
+    it('sin dificultad no aparece ningún evento', () => {
+      useJuego.getState().nueva(4, null, 3)
+      render(<App />)
+      for (let semana = 1; semana <= 6; semana++) {
+        clic('Descansar en todos')
+        fireEvent.click(confirmar())
+        expect(screen.queryByRole('dialog')).toBeNull()
+      }
+      expect(screen.queryByRole('button', { name: /^Ver evento/ })).toBeNull()
+    })
   })
 })

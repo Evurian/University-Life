@@ -5,8 +5,10 @@ import { conSigno, ZONAS } from './textos.ts'
 
 interface Props {
   estres: number
-  /** Estrés al cierre de la semana anterior, para mostrar cuánto cambió. */
-  previo?: number
+  /** Cuánto cambió el estrés en el último cierre de semana (o en la semana en curso, en una crisis). */
+  cambio?: number
+  /** A qué semana se refiere ese cambio. */
+  cuando?: string
 }
 
 // Geometría del dibujo: el cerebro ocupa de y = 8 (100 % de estrés) a y = 92 (0 %).
@@ -23,12 +25,11 @@ const SURCOS =
   'M40 22 C44 28 40 34 46 38 M74 20 C70 26 76 30 72 36'
 
 /** Cerebro que se llena de estrés: el nivel sube con el estrés y toma el color de la zona. */
-export function BarraEstres({ estres, previo }: Props) {
+export function BarraEstres({ estres, cambio = 0, cuando = 'la semana pasada' }: Props) {
   const recorte = useId()
   const zona = zonaDe(estres)
   const { verde, amarilla } = BALANCE.zonas
   const crisis = BALANCE.crisis.umbralDisparo
-  const cambio = previo === undefined ? 0 : estres - previo
 
   return (
     <div className="estres">
@@ -83,7 +84,7 @@ export function BarraEstres({ estres, previo }: Props) {
         </span>
         {cambio !== 0 && (
           <span className="estres-cambio">
-            {cambio > 0 ? '▲' : '▼'} {conSigno(cambio)} esta semana
+            {cambio > 0 ? '▲' : '▼'} {conSigno(cambio)} {cuando}
           </span>
         )}
         <small>Línea punteada: crisis en {crisis} %</small>

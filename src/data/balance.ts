@@ -2,6 +2,7 @@
 
 export type DecisionId = 'intensivo' | 'balanceada' | 'salud'
 export type ZonaId = 'verde' | 'amarilla' | 'roja'
+export type DificultadId = 'relajado' | 'normal' | 'exigente'
 
 export interface Decision {
   nombre: string
@@ -14,6 +15,18 @@ export interface DatosAsignatura {
   nombre: string
   /** Horas de estudio por tramo con las que se alcanza la nota máxima. */
   horObjetivo: number
+}
+
+export interface Dificultad {
+  nombre: string
+  /** Probabilidad de que una semana traiga evento. */
+  probEvento: number
+  /** Probabilidad de que el evento sea bueno. */
+  probBueno: number
+  /** Peso de lo que beneficia en un evento bueno. */
+  pesoBueno: number
+  /** Peso de lo que perjudica en un evento malo. */
+  pesoMalo: number
 }
 
 export interface Zona {
@@ -37,7 +50,7 @@ export const BALANCE = {
     { nombre: 'Física', horObjetivo: 42 },
     { nombre: 'Redacción', horObjetivo: 32 },
   ] satisfies DatosAsignatura[],
-  asignaturasMin: 2,
+  asignaturasMin: 3,
   asignaturasMax: 4,
   asignaturasPorDefecto: 4,
 
@@ -102,10 +115,36 @@ export const BALANCE = {
     alivioReposo: 20,
   },
 
-  // Beca (31)
+  // Beca (31, 38): con más cursos se exige menos rendimiento
   beca: {
-    asignaturasRequeridas: 4,
-    ovrMin: 85,
+    ovrMinPorCursos: { 3: 85, 4: 84 } as Record<number, number>,
     parcialMin: 10.5,
+  },
+
+  // Dificultad (36, 37): solo cambia los eventos
+  dificultades: {
+    relajado: {
+      nombre: 'Relajado',
+      probEvento: 0.45,
+      probBueno: 0.65,
+      pesoBueno: 1.25,
+      pesoMalo: 0.75,
+    },
+    normal: { nombre: 'Normal', probEvento: 0.5, probBueno: 0.5, pesoBueno: 1, pesoMalo: 1 },
+    exigente: {
+      nombre: 'Exigente',
+      probEvento: 0.6,
+      probBueno: 0.35,
+      pesoBueno: 0.75,
+      pesoMalo: 1.25,
+    },
+  } satisfies Record<DificultadId, Dificultad>,
+  dificultadPorDefecto: 'normal' as DificultadId,
+
+  // Eventos (41)
+  eventos: {
+    minPorPartida: 4,
+    maxPorPartida: 9,
+    maxMalosSeguidos: 2,
   },
 } as const

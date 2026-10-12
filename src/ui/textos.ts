@@ -1,5 +1,5 @@
 import type { FinalId, OpcionCrisis } from '../core/simulacion.ts'
-import { BALANCE, type DecisionId, type ZonaId } from '../data/balance.ts'
+import { BALANCE, type DecisionId, type DificultadId, type ZonaId } from '../data/balance.ts'
 
 // Nombres que ve el jugador. En el código y en REGLAS.md los cursos son "asignaturas",
 // los trabajos son "entregas" y tener los trabajos necesarios es la "regularidad".
@@ -14,6 +14,12 @@ export const DECISIONES_CORTAS: Record<DecisionId, string> = {
   intensivo: 'Estudiar a fondo',
   balanceada: 'Trabajo semanal',
   salud: 'Descansar',
+}
+
+export const DIFICULTADES: Record<DificultadId, string> = {
+  relajado: 'Más eventos buenos que malos, y los malos pesan menos.',
+  normal: 'Tantos eventos buenos como malos.',
+  exigente: 'Más eventos, casi todos malos, y pesan más.',
 }
 
 /** Para qué sirve cada acción, en una línea. */
@@ -62,6 +68,9 @@ export const CRISIS: Record<OpcionCrisis, { titulo: string; texto: string }> = {
     texto: 'La partida termina ahora. No se puede deshacer.',
   },
 }
+
+/** Texto de un evento con el nombre del curso afectado. */
+export const textoEvento = (texto: string, curso: string) => texto.replaceAll('{curso}', curso)
 
 export const n1 = (valor: number) => valor.toFixed(1)
 export const conSigno = (valor: number) => (valor > 0 ? `+${valor}` : `${valor}`.replace('-', '−'))
