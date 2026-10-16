@@ -10,6 +10,16 @@ const clic = (nombre: string | RegExp) =>
   fireEvent.click(screen.getByRole('button', { name: nombre }))
 const titulo = () => screen.getByRole('heading', { level: 1 }).textContent
 const confirmar = () => screen.getByRole('button', { name: 'Confirmar semana' })
+/** Las dos opciones de un evento: son los botones que se pueden marcar. */
+const opcionesDe = (dialogo: HTMLElement) =>
+  within(dialogo)
+    .getAllByRole('button')
+    .filter((b) => b.hasAttribute('aria-pressed'))
+/** Marca una opción del evento y confirma la elección. */
+function elegirEnEvento(dialogo: HTMLElement, indice = 0) {
+  fireEvent.click(opcionesDe(dialogo)[indice]!)
+  fireEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar elección' }))
+}
 
 /** Deja la partida a una semana balanceada de la crisis. */
 function alBordeDeLaCrisis() {
@@ -30,7 +40,7 @@ describe('interfaz', () => {
     let pasos = 0
     while (!screen.queryByText(/Fin del cuatrimestre/)) {
       const evento = screen.queryByRole('dialog', { name: /^Evento:/ })
-      if (evento) fireEvent.click(within(evento).getAllByRole('button')[0]!)
+      if (evento) elegirEnEvento(evento)
       else if (screen.queryByRole('dialog')) clic('Reposo forzado')
       else {
         clic('Trabajo semanal en todos')
@@ -57,7 +67,7 @@ describe('interfaz', () => {
     expect(reglas.textContent).toContain('entras en crisis')
 
     clic('Empezar')
-    expect(screen.getByText('Cómo se juega').tagName).toBe('SUMMARY')
+    expect(screen.getByText('Cómo se juega').closest('summary')).toBeTruthy()
   })
 
   it('respeta los cursos y la dificultad elegidos al empezar', () => {
@@ -93,14 +103,17 @@ describe('interfaz', () => {
     useJuego.getState().nueva(4, null, 1)
     render(<App />)
     const fila = screen.getByRole('group', { name: 'Cálculo' })
-    expect(fila.textContent).toContain('5.0')
+    // Sin horas en el tramo no hay nota que estimar: no se muestra un 5.0 que parezca real.
+    expect(fila.textContent).toContain('Sin horas en este tramo')
+    expect(fila.textContent).not.toContain('5.0')
     fireEvent.click(within(fila).getByRole('button', { name: 'Estudiar a fondo' }))
     // Cálculo exige 46 h: 15.4 h en zona verde dan 4 + 16 · (15.4 / 46)^0.7 + 1
-    expect(fila.textContent).toContain('5.0 → 12.4')
+    expect(fila.textContent).toContain('— → 12.4')
     fireEvent.click(within(fila).getByRole('button', { name: 'Trabajo semanal' }))
     expect(fila.textContent).toContain('0 → 1 / 9')
     fireEvent.click(within(fila).getByRole('button', { name: 'Descansar' }))
-    expect(fila.textContent).toContain('5.0 → 5.0')
+    expect(fila.textContent).not.toContain('→')
+    expect(fila.textContent).toContain('Sin horas en este tramo')
   })
 
   it('avisa de la rutina al elegir lo mismo en todas y deja de avisar al variar', () => {
@@ -337,46 +350,143 @@ describe('interfaz', () => {
 
     it('una semana con evento abre su card y no deja planificar hasta elegir', () => {
       const card = hastaUnEvento()
-      const opciones = within(card).getAllByRole('button')
+      const opciones = opcionesDe(card)
       expect(opciones).toHaveLength(2)
-      expect(card.textContent).toMatch(/estrés|h en|trabajo|Horas de esta semana/)
+      expect(card.textContent).toMatch(/estrés|h en|trabajo|horas de estudio rinden/)
+      expect(card.textContent).toMatch(/Evento (favorable|adverso)/)
+      expect(card.textContent).toContain('Estrés ahora')
       expect(confirmar()).toHaveProperty('disabled', true)
-
-      fireEvent.click(opciones[1]!)
-      expect(screen.queryByRole('dialog')).toBeNull()
-      expect(useJuego.getState().estado).toMatchObject({ fase: 'decision', semana: 2 })
-      expect(useJuego.getState().estado?.evento?.elegida).toBe(1)
+      expect(within(card).getByRole('button', { name: 'Confirmar elección' })).toHaveProperty(
+        'disabled',
+        true,
+      )
     })
 
-    it('tras elegir, el evento se puede volver a abrir solo para leerlo', () => {
+    it('la elección se marca, se puede cambiar y solo cuenta al confirmar', () => {
+      const card = hastaUnEvento()
+      const [primera, segunda] = opcionesDe(card)
+      fireEvent.click(segunda!)
+      expect(segunda!.getAttribute('aria-pressed')).toBe('true')
+      expect(segunda!.textContent).toContain('Seleccionada')
+      expect(useJuego.getState().estado?.fase).toBe('evento')
+
+      fireEvent.click(primera!)
+      expect(primera!.getAttribute('aria-pressed')).toBe('true')
+      expect(segunda!.getAttribute('aria-pressed')).toBe('false')
+
+      // Un doble clic en confirmar resuelve un solo evento.
+      const confirmarEleccion = within(card).getByRole('button', { name: 'Confirmar elección' })
+      fireEvent.click(confirmarEleccion)
+      fireEvent.click(confirmarEleccion)
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(useJuego.getState().estado).toMatchObject({ fase: 'decision', semana: 2 })
+      expect(useJuego.getState().estado?.evento?.elegida).toBe(0)
+    })
+
+    it('el foco queda atrapado en el diálogo mientras no se resuelve', () => {
+      const card = hastaUnEvento()
+      const enfocables = within(card)
+        .getAllByRole('button')
+        .filter((b) => !b.hasAttribute('disabled'))
+      expect(card.contains(document.activeElement)).toBe(true)
+      enfocables.at(-1)!.focus()
+      fireEvent.keyDown(document, { key: 'Tab' })
+      expect(document.activeElement).toBe(enfocables[0])
+      fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+      expect(document.activeElement).toBe(enfocables.at(-1))
+
+      // Sin resolver, Escape no cierra: hay que elegir.
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(screen.getByRole('dialog', { name: /^Evento:/ })).toBeTruthy()
+    })
+
+    it('tras elegir, el evento se reabre solo para leerlo y Escape lo cierra devolviendo el foco', () => {
       const card = hastaUnEvento()
       const titulo = card.getAttribute('aria-label')!.replace('Evento: ', '')
-      fireEvent.click(within(card).getAllByRole('button')[0]!)
+      elegirEnEvento(card)
 
-      clic(`Ver evento: ${titulo}`)
+      const disparador = screen.getByRole('button', { name: `Ver evento: ${titulo}` })
+      disparador.focus()
+      fireEvent.click(disparador)
       const abierta = screen.getByRole('dialog', { name: `Evento: ${titulo}` })
       expect(abierta.textContent).toContain('Lo que elegiste')
+      expect(abierta.textContent).toContain('Descartada')
       expect(within(abierta).getAllByRole('button')).toHaveLength(1)
       const antes = useJuego.getState().estado
 
-      clic('Cerrar')
+      fireEvent.keyDown(document, { key: 'Escape' })
       expect(screen.queryByRole('dialog')).toBeNull()
       expect(useJuego.getState().estado).toBe(antes)
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: `Ver evento: ${titulo}` }),
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: `Ver evento: ${titulo}` }))
+      clic('Cerrar')
+      expect(screen.queryByRole('dialog')).toBeNull()
     })
 
-    it('el evento queda en el calendario y en el detalle de su semana', () => {
+    it('el evento queda en el calendario, en "Qué pasó" y en el detalle de su semana', () => {
       const card = hastaUnEvento()
       const titulo = card.getAttribute('aria-label')!.replace('Evento: ', '')
-      fireEvent.click(within(card).getAllByRole('button')[0]!)
+      const calendario = () => screen.getByRole('list', { name: /Calendario/ })
+      expect(within(calendario()).getAllByRole('listitem')[1]!.innerHTML).toContain('pendiente')
+
+      elegirEnEvento(card)
+      expect(within(calendario()).getAllByRole('listitem')[1]!.innerHTML).not.toContain('pendiente')
       clic('Descansar en todos')
       fireEvent.click(confirmar())
-      const pendiente = screen.queryByRole('dialog', { name: /^Evento:/ })
-      if (pendiente) fireEvent.click(within(pendiente).getAllByRole('button')[0]!)
+      const otro = screen.queryByRole('dialog', { name: /^Evento:/ })
+      if (otro) elegirEnEvento(otro)
+
+      const resumen = screen.getByRole('region', { name: 'Qué pasó' })
+      expect(resumen.textContent).toContain(titulo)
+      expect(resumen.textContent).toContain('Elegiste')
 
       clic(/^Semana 2,/)
       const detalle = screen.getByRole('region', { name: 'Semana 2' })
-      expect(detalle.textContent).toContain(`Evento: ${titulo}`)
+      expect(detalle.textContent).toContain(titulo)
       expect(detalle.textContent).toContain('Elegiste')
+    })
+
+    it('muestra qué cambia de verdad y que el evento no provoca la crisis', () => {
+      const base = crearPartida(1, BALANCE.asignaturas, 'normal')
+      useJuego.setState({
+        estado: {
+          ...base,
+          semana: 2,
+          estres: 75,
+          fase: 'evento',
+          evento: { id: 'mala_salud', curso: 0, elegida: null },
+        },
+      })
+      render(<App />)
+      const card = screen.getByRole('dialog', { name: /^Evento:/ })
+      // +10 de estrés desde 75 se detiene en 79: justo antes de la crisis.
+      expect(card.textContent).toContain('75 → 79 %')
+      expect(card.textContent).toContain('no puede hacerte entrar en crisis')
+      expect(card.textContent).toContain('las horas de estudio rinden −30 %')
+      elegirEnEvento(card, 1)
+      expect(useJuego.getState().estado).toMatchObject({ estres: 79, fase: 'decision' })
+      expect(screen.queryByRole('dialog', { name: 'Crisis de estrés' })).toBeNull()
+    })
+
+    it('un trabajo de evento dice cómo queda el curso', () => {
+      const base = crearPartida(1, BALANCE.asignaturas, 'normal')
+      const asignaturas = base.asignaturas.map((a, i) => (i === 0 ? { ...a, ent: 9 } : a))
+      useJuego.setState({
+        estado: {
+          ...base,
+          semana: 3,
+          asignaturas,
+          fase: 'evento',
+          evento: { id: 'trabajo_perdonado', curso: 0, elegida: null },
+        },
+      })
+      render(<App />)
+      const card = screen.getByRole('dialog', { name: /^Evento:/ })
+      expect(card.textContent).toContain('Curso afectado: Cálculo')
+      expect(card.textContent).toContain('ya tienes 9/9')
     })
 
     it('sin dificultad no aparece ningún evento', () => {

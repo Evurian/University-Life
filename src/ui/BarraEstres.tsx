@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { zonaDe } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { conSigno, ZONAS } from './textos.ts'
+import { Valor } from './Valor.tsx'
 
 interface Props {
   estres: number
@@ -35,13 +36,13 @@ export function BarraEstres({ estres, cambio = 0, cuando = 'la semana pasada' }:
     <div className="estres">
       <svg
         className="cerebro"
-        viewBox="0 0 120 100"
+        viewBox="0 0 150 100"
         role="progressbar"
         aria-label="Estrés"
         aria-valuemin={BALANCE.estresMin}
         aria-valuemax={BALANCE.estresMax}
         aria-valuenow={estres}
-        aria-valuetext={`${estres} %, zona ${ZONAS[zona]}`}
+        aria-valuetext={`${estres} %, zona ${ZONAS[zona]}; la crisis empieza en ${crisis} %`}
       >
         <clipPath id={recorte}>
           <path d={CONTORNO} />
@@ -70,15 +71,51 @@ export function BarraEstres({ estres, cambio = 0, cuando = 'la semana pasada' }:
             height={ALTO + 10}
             style={{ transform: `translateY(${y(estres) - ARRIBA}px)` }}
           />
+          {/* Límites entre zonas, para que se lean aunque los colores se parezcan. */}
+          {[verde.hasta, amarilla.hasta].map((limite) => (
+            <line
+              key={limite}
+              className="limite-zona"
+              x1="0"
+              x2="120"
+              y1={y(limite)}
+              y2={y(limite)}
+            />
+          ))}
         </g>
         <path className="surcos" d={SURCOS} />
         <path className="contorno" d={CONTORNO} />
-        <line className="linea-crisis" x1="2" x2="118" y1={y(crisis)} y2={y(crisis)} />
+        <line className="linea-crisis" x1="2" x2="124" y1={y(crisis)} y2={y(crisis)} />
+        <text className="etiqueta-crisis" x="60" y={y(crisis) - 3} textAnchor="middle">
+          Crisis {crisis} %
+        </text>
+        {/* Escala 0–100 a la derecha del cerebro. */}
+        <line
+          className="eje"
+          x1="128"
+          x2="128"
+          y1={y(BALANCE.estresMin)}
+          y2={y(BALANCE.estresMax)}
+        />
+        {[BALANCE.estresMin, verde.hasta, amarilla.hasta, BALANCE.estresMax].map((marca) => (
+          <g key={marca}>
+            <line className="eje" x1="126" x2="130" y1={y(marca)} y2={y(marca)} />
+            <text className="escala" x="133" y={y(marca) + 3.5}>
+              {marca}
+            </text>
+          </g>
+        ))}
+        <polygon
+          className="aguja-escala"
+          points={`124,${y(estres)} 119,${y(estres) - 3.5} 119,${y(estres) + 3.5}`}
+        />
       </svg>
 
       <div className="estres-lectura">
         <span className="estres-titulo">Estrés</span>
-        <strong className={`estres-valor zona ${zona}`}>{estres} %</strong>
+        <strong>
+          <Valor className={`estres-valor zona ${zona}`}>{`${estres} %`}</Valor>
+        </strong>
         <span>
           Zona <span className={`zona ${zona}`}>{ZONAS[zona]}</span>
         </span>
@@ -87,7 +124,6 @@ export function BarraEstres({ estres, cambio = 0, cuando = 'la semana pasada' }:
             {cambio > 0 ? '▲' : '▼'} {conSigno(cambio)} {cuando}
           </span>
         )}
-        <small>Línea punteada: crisis en {crisis} %</small>
       </div>
     </div>
   )

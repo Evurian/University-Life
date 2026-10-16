@@ -14,9 +14,10 @@ import {
   type Estado,
 } from '../core/simulacion.ts'
 import { BALANCE, type DecisionId } from '../data/balance.ts'
+import { eventoPorId } from '../data/eventos.ts'
 import { useJuego } from '../store/juego.ts'
 import { CardDecision } from './CardDecision.tsx'
-import { conSigno, DECISIONES_CORTAS, n1, ZONAS } from './textos.ts'
+import { conSigno, DECISIONES_CORTAS, exigencia, n1, rendimientoHoras, ZONAS } from './textos.ts'
 import { Valor } from './Valor.tsx'
 
 const DECISIONES = Object.keys(BALANCE.decisiones) as DecisionId[]
@@ -25,43 +26,72 @@ const NECESARIOS = BALANCE.entregasRegularidad
 type Elegidas = (DecisionId | null)[]
 type Vista = 'todos' | 'uno'
 
-const exigencia = (horObjetivo: number) =>
-  horObjetivo > BALANCE.nota.horObjetivo
-    ? 'Exigente'
-    : horObjetivo < BALANCE.nota.horObjetivo
-      ? 'Ligero'
-      : 'Medio'
-
 // En pantallas estrechas no caben todos los cursos con sus cards: se empieza de uno en uno.
 const vistaInicial = (): Vista =>
   typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches
     ? 'uno'
     : 'todos'
 
+/** Nota estimada de un curso. Sin horas en el tramo no hay nada que estimar todavía. */
+function NotaEstimada({
+  curso,
+  estado,
+  efecto,
+  previsto,
+}: {
+  curso: Asignatura
+  estado: Estado
+  efecto: Efecto | null
+  previsto: number
+}) {
+  const ahora =
+    curso.horTramo > 0 ? n1(notaEstimada(curso.horTramo, estado.estres, curso.horObjetivo)) : '—'
+  const sumaHoras = efecto !== null && efecto.hor > 0
+  return (
+    <div className="metrica">
+      <span className="metrica-etiqueta">Nota estimada</span>
+      <span className="metrica-valor">
+        {ahora}
+        {sumaHoras && (
+          <>
+            {' → '}
+            <Valor className="nuevo">
+              {n1(notaEstimada(curso.horTramo + efecto.hor, previsto, curso.horObjetivo))}
+            </Valor>
+          </>
+        )}
+      </span>
+      {curso.horTramo === 0 && !sumaHoras && <small>Sin horas en este tramo</small>}
+    </div>
+  )
+}
+
 /** Trabajos entregados de un curso frente a los necesarios, y cuánto margen queda. */
 function Trabajos({ curso, semana, suma }: { curso: Asignatura; semana: number; suma: number }) {
   const estado = regularidadDe(curso, semana)
   const margen = margenEntregas(curso, semana)
   return (
-    <span className="dato trabajos">
-      <small>Trabajos (necesitas {NECESARIOS})</small>
-      <span>
-        {curso.ent}
-        {suma > 0 && (
-          <>
-            {' → '}
-            <Valor className="nuevo">{curso.ent + suma}</Valor>
-          </>
-        )}{' '}
-        / {NECESARIOS}
-      </span>
-      <span className="pips" aria-hidden="true">
-        {Array.from({ length: NECESARIOS }, (_, i) => (
-          <i
-            key={i}
-            className={i < curso.ent ? 'hecho' : i < curso.ent + suma ? 'previsto' : undefined}
-          />
-        ))}
+    <div className="metrica trabajos">
+      <span className="metrica-etiqueta">Trabajos (necesitas {NECESARIOS})</span>
+      <span className="metrica-valor">
+        <span>
+          {curso.ent}
+          {suma > 0 && (
+            <>
+              {' → '}
+              <Valor className="nuevo">{curso.ent + suma}</Valor>
+            </>
+          )}{' '}
+          / {NECESARIOS}
+        </span>
+        <span className="pips" aria-hidden="true">
+          {Array.from({ length: NECESARIOS }, (_, i) => (
+            <i
+              key={i}
+              className={i < curso.ent ? 'hecho' : i < curso.ent + suma ? 'previsto' : undefined}
+            />
+          ))}
+        </span>
       </span>
       {estado === 'asegurada' && <small className="bien">✓ Completos</small>}
       {estado === 'perdida' && <small className="mal">✕ Ya no alcanzas los {NECESARIOS}</small>}
@@ -73,7 +103,7 @@ function Trabajos({ curso, semana, suma }: { curso: Asignatura; semana: number; 
           Puedes saltarte {margen} {margen === 1 ? 'semana' : 'semanas'}
         </small>
       )}
-    </span>
+    </div>
   )
 }
 
@@ -89,7 +119,7 @@ interface CursoProps {
   onElegir(decision: DecisionId): void
 }
 
-/** Un curso: cómo va, y una card por cada acción posible esta semana. */
+/** Un curso: las tres acciones posibles esta semana, con sus datos al lado. */
 function Curso({
   estado,
   curso,
@@ -102,29 +132,20 @@ function Curso({
 }: CursoProps) {
   return (
     <div className={`curso ${grande ? 'grande' : ''}`} role="group" aria-label={curso.nombre}>
-      <span className="nombre">
-        {curso.nombre}
-        <small>
-          {exigencia(curso.horObjetivo)} · {curso.horObjetivo} h por parcial
-        </small>
-        {curso.notas.length > 0 && <small>Parciales: {curso.notas.map(n1).join(' · ')}</small>}
-      </span>
-      <span className="dato">
-        <small>Nota estimada</small>
-        <span>
-          {n1(notaEstimada(curso.horTramo, estado.estres, curso.horObjetivo))}
-          {efecto && (
-            <>
-              {' → '}
-              <Valor className="nuevo">
-                {n1(notaEstimada(curso.horTramo + efecto.hor, previsto, curso.horObjetivo))}
-              </Valor>
-            </>
-          )}
+      <div className="curso-datos">
+        <span className="nombre">
+          {curso.nombre}
+          <small>
+            {exigencia(curso.horObjetivo)} · {curso.horObjetivo} h por parcial
+          </small>
+          {curso.notas.length > 0 && <small>Parciales: {curso.notas.map(n1).join(' · ')}</small>}
         </span>
-      </span>
-      <Trabajos curso={curso} semana={estado.semana} suma={efecto ? efecto.ent : 0} />
-      <span className="cards">
+        <div className="metricas">
+          <NotaEstimada curso={curso} estado={estado} efecto={efecto} previsto={previsto} />
+          <Trabajos curso={curso} semana={estado.semana} suma={efecto ? efecto.ent : 0} />
+        </div>
+      </div>
+      <div className="cards">
         {DECISIONES.map((d) => (
           <CardDecision
             key={d}
@@ -136,7 +157,7 @@ function Curso({
             onElegir={() => onElegir(d)}
           />
         ))}
-      </span>
+      </div>
     </div>
   )
 }
@@ -156,11 +177,13 @@ export function PanelDecision({ estado }: { estado: Estado }) {
   const bloqueado = estado.fase !== 'decision'
   const completas = elegidas.filter((d): d is DecisionId => d !== null)
   const lista = completas.length === elegidas.length
+  const faltan = elegidas.length - completas.length
   const esParcial = parcialDeSemana(estado.semana) !== -1
   const rutina = esRutina(estado, completas)
   const previsto = estresPrevisto(estado, completas)
   const zonaPrevista = zonaDe(previsto)
-  const costeRutina = `${conSigno(-BALANCE.rutina.alivioEstres)} de estrés, pero ${conSigno(Math.round((BALANCE.rutina.multHor - 1) * 100))} % de horas`
+  const costeRutina = `${conSigno(-BALANCE.rutina.alivioEstres)} de estrés, pero ${conSigno(Math.round((BALANCE.rutina.multHor - 1) * 100))} % de horas de estudio`
+  const evento = estado.evento && eventoPorId(estado.evento.id)
 
   const curso = (i: number, grande = false) => {
     const a = estado.asignaturas[i]!
@@ -182,7 +205,7 @@ export function PanelDecision({ estado }: { estado: Estado }) {
   const ultimo = estado.asignaturas.length - 1
 
   return (
-    <section className="panel" aria-label="Decisiones de la semana">
+    <section className="panel panel-decision" aria-label="Decisiones de la semana">
       <div className="encabezado-panel">
         <h2>
           <span className={`paso ${lista ? 'hecho' : 'activo'}`}>1</span>
@@ -196,18 +219,40 @@ export function PanelDecision({ estado }: { estado: Estado }) {
           ))}
         </div>
       </div>
+
       {esParcial && (
         <p className="aviso">
           Semana de parcial: se rinde al confirmar y no hay trabajo que entregar.
         </p>
       )}
-
       {estado.modificadores.multHoras !== 1 && (
         <p className="aviso">
-          Por el evento de esta semana, las horas de estudio rinden{' '}
-          {conSigno(Math.round((estado.modificadores.multHoras - 1) * 100))} %.
+          Por el evento «{evento?.titulo}», esta semana{' '}
+          {rendimientoHoras(estado.modificadores.multHoras)}.
         </p>
       )}
+
+      <div className="atajo">
+        <div>
+          <strong>Atajo: la misma acción en todos los cursos</strong>
+          <p>
+            Elegir lo mismo en todos —con estos botones o a mano— hace la semana de rutina:{' '}
+            {costeRutina}.
+          </p>
+        </div>
+        <div className="botones">
+          {DECISIONES.map((d) => (
+            <button
+              key={d}
+              type="button"
+              disabled={bloqueado}
+              onClick={() => fijar(estado.asignaturas.map(() => d))}
+            >
+              {DECISIONES_CORTAS[d]} en todos
+            </button>
+          ))}
+        </div>
+      </div>
 
       {vista === 'todos' ? (
         <div className="lista-cursos">{estado.asignaturas.map((_, i) => curso(i))}</div>
@@ -253,62 +298,46 @@ export function PanelDecision({ estado }: { estado: Estado }) {
         </div>
       )}
 
-      <div className="atajo">
-        <span className="nombre">
-          Atajo
-          <small>Rutina: {costeRutina}</small>
-        </span>
-        <span className="botones">
-          {DECISIONES.map((d) => (
-            <button
-              key={d}
-              type="button"
-              disabled={bloqueado}
-              onClick={() => fijar(estado.asignaturas.map(() => d))}
-            >
-              {DECISIONES_CORTAS[d]} en todos
-            </button>
-          ))}
-        </span>
+      {/* Barra fija abajo: el resultado previsto se ve mientras se decide. */}
+      <div className="barra-confirmar">
+        {rutina && (
+          <p className="aviso">
+            Semana de rutina: la misma decisión en todos te da {costeRutina}. Cambia una para
+            evitarlo.
+          </p>
+        )}
+        {lista && !provocaCrisis(estado, completas) && previsto >= BALANCE.crisis.umbralDisparo && (
+          <p className="aviso peligro" role="alert">
+            Con el estrés en {BALANCE.crisis.umbralDisparo} % o más, cada semana hay un{' '}
+            {BALANCE.crisis.probColapso * 100} % de colapsar y perderla entera.
+          </p>
+        )}
+        {lista && provocaCrisis(estado, completas) && (
+          <p className="aviso peligro" role="alert">
+            Con estas decisiones el estrés llega a {BALANCE.crisis.umbralDisparo} % o más: entrarás
+            en crisis.
+          </p>
+        )}
+        <div className="cierre">
+          <h2>
+            <span className={`paso ${lista ? 'activo' : ''}`}>2</span>
+            Confirma la semana
+          </h2>
+          <p className="previsto" aria-live="polite">
+            Estrés: {estado.estres} % →{' '}
+            <Valor className={`zona ${zonaPrevista}`}>{`${previsto} %`}</Valor> (zona{' '}
+            {ZONAS[zonaPrevista]}){!lista && <small> · faltan cursos por decidir ({faltan})</small>}
+          </p>
+          <button
+            type="button"
+            className={`principal ${lista && !bloqueado ? 'lista' : ''}`}
+            disabled={bloqueado || !lista}
+            onClick={() => decidir(completas)}
+          >
+            Confirmar semana
+          </button>
+        </div>
       </div>
-
-      <h2>
-        <span className={`paso ${lista ? 'activo' : ''}`}>2</span>
-        Confirma la semana
-      </h2>
-      <div className="cierre">
-        <p className="previsto" aria-live="polite">
-          Estrés: {estado.estres} % →{' '}
-          <Valor className={`zona ${zonaPrevista}`}>{`${previsto} %`}</Valor> (zona{' '}
-          {ZONAS[zonaPrevista]}){!lista && ' · faltan cursos por decidir'}
-        </p>
-        <button
-          type="button"
-          className={`principal ${lista && !bloqueado ? 'lista' : ''}`}
-          disabled={bloqueado || !lista}
-          onClick={() => decidir(completas)}
-        >
-          Confirmar semana
-        </button>
-      </div>
-      {rutina && (
-        <p className="aviso">
-          Semana de rutina: la misma decisión en todos te da {costeRutina}. Cambia una para
-          evitarlo.
-        </p>
-      )}
-      {lista && !provocaCrisis(estado, completas) && previsto >= BALANCE.crisis.umbralDisparo && (
-        <p className="aviso peligro" role="alert">
-          Con el estrés en {BALANCE.crisis.umbralDisparo} % o más, cada semana hay un{' '}
-          {BALANCE.crisis.probColapso * 100} % de colapsar y perderla entera.
-        </p>
-      )}
-      {lista && provocaCrisis(estado, completas) && (
-        <p className="aviso peligro" role="alert">
-          Con estas decisiones el estrés llega a {BALANCE.crisis.umbralDisparo} % o más: entrarás en
-          crisis.
-        </p>
-      )}
     </section>
   )
 }

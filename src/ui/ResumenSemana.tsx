@@ -8,10 +8,14 @@ import {
 import { BALANCE } from '../data/balance.ts'
 import { eventoPorId } from '../data/eventos.ts'
 import { useJuego } from '../store/juego.ts'
-import { conSigno, DECISIONES_CORTAS, n1, textoEvento, ZONAS } from './textos.ts'
+import { conSigno, DECISIONES_CORTAS, n1, textoEvento, TIPO_EVENTO, ZONAS } from './textos.ts'
 
-/** Solo merece aviso lo que el indicador de estrés y la tabla no cuentan por sí solos. */
-const esNotable = (r: RegistroSemana) => r.perdida !== null || r.crisis !== null || r.notas !== null
+/**
+ * Solo merece aviso lo que el indicador de estrés y la tabla no cuentan por sí solos.
+ * Una semana normal, sin evento ni nada de lo anterior, no genera aviso.
+ */
+const esNotable = (r: RegistroSemana) =>
+  r.perdida !== null || r.crisis !== null || r.notas !== null || r.evento !== null
 
 function Incidencias({ registro }: { registro: RegistroSemana }) {
   return (
@@ -22,6 +26,23 @@ function Incidencias({ registro }: { registro: RegistroSemana }) {
       {registro.crisis === 'forzar' && 'Seguiste pese a la crisis. '}
       {registro.crisis === 'abandono' && 'Abandonaste la carrera. '}
     </>
+  )
+}
+
+/** Qué evento tuvo la semana y qué se eligió. */
+function LineaEvento({ registro, estado }: { registro: RegistroSemana; estado: Estado }) {
+  const evento = registro.evento
+  if (!evento || evento.elegida === null) return null
+  const datos = eventoPorId(evento.id)
+  const opcion = datos.opciones[evento.elegida]!
+  return (
+    <span className="linea-evento">
+      <span className={`marca-evento ${datos.tipo}`} aria-hidden="true">
+        {TIPO_EVENTO[datos.tipo].marca}
+      </span>{' '}
+      {TIPO_EVENTO[datos.tipo].nombre}: <strong>{datos.titulo}</strong>. Elegiste «
+      {textoEvento(opcion.texto, estado.asignaturas[evento.curso]?.nombre ?? '')}».
+    </span>
   )
 }
 
@@ -75,6 +96,7 @@ export function ResumenSemana({ estado }: { estado: Estado }) {
         {notables.map((registro) => (
           <li key={registro.semana}>
             <strong>Semana {registro.semana}.</strong> <Incidencias registro={registro} />
+            <LineaEvento registro={registro} estado={estado} />
             <TablaParcial registro={registro} estado={estado} />
           </li>
         ))}
@@ -109,14 +131,9 @@ export function DetalleSemana({ estado, semana, onCerrar }: DetalleProps) {
         Terminaste con estrés {registro.estres} % (zona{' '}
         <span className={`zona ${zona}`}>{ZONAS[zona]}</span>).
       </p>
-      {registro.evento && registro.evento.elegida !== null && (
+      {registro.evento && (
         <p>
-          <strong>Evento: {eventoPorId(registro.evento.id).titulo}.</strong> Elegiste «
-          {textoEvento(
-            eventoPorId(registro.evento.id).opciones[registro.evento.elegida]!.texto,
-            estado.asignaturas[registro.evento.curso]?.nombre ?? '',
-          )}
-          ».
+          <LineaEvento registro={registro} estado={estado} />
         </p>
       )}
       {jugada && (

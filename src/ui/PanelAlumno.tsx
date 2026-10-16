@@ -30,19 +30,29 @@ export function PanelAlumno({ estado }: { estado: Estado }) {
         <p className="nota">Sin nueva crisis hasta bajar de {BALANCE.crisis.umbralRearme} %.</p>
       )}
 
-      <p className="ovr">
-        <Valor className="ovr-valor">
-          {general === null ? '—' : Math.round(BALANCE.ovr.factorPromedio * general)}
-        </Valor>
-        <span>
-          Rendimiento
-          <br />
-          <small>{general === null ? 'Sin parciales aún' : `Promedio ${n1(general)} / 20`}</small>
-        </span>
-      </p>
+      {general === null ? (
+        <p className="ovr vacio">
+          <span>Rendimiento</span>
+          <small>Se calcula tras el Parcial 1</small>
+        </p>
+      ) : (
+        <p className="ovr">
+          <Valor className="ovr-valor">{Math.round(BALANCE.ovr.factorPromedio * general)}</Valor>
+          <span>
+            Rendimiento
+            <br />
+            <small>Promedio {n1(general)} / 20</small>
+          </span>
+        </p>
+      )}
 
       <details className="ayuda">
-        <summary>Cómo se juega</summary>
+        <summary>
+          <span>Cómo se juega</span>
+          <span className="chevron" aria-hidden="true">
+            ▾
+          </span>
+        </summary>
         <ComoSeJuega />
       </details>
     </aside>

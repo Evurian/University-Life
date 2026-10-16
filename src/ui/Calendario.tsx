@@ -1,7 +1,7 @@
 import { parcialDeSemana, zonaDe, type Estado } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { eventoPorId } from '../data/eventos.ts'
-import { DECISIONES_CORTAS, n1, ZONAS } from './textos.ts'
+import { DECISIONES_CORTAS, n1, TIPO_EVENTO, ZONAS } from './textos.ts'
 
 interface Props {
   estado: Estado
@@ -22,6 +22,10 @@ export function Calendario({ estado, vista, onVer }: Props) {
         const zona = registro && zonaDe(registro.estres)
         const etiqueta =
           parcial !== -1 ? `★ P${parcial + 1}` : semana === BALANCE.semanasTotales ? 'Fin' : ''
+        // El evento de la semana en curso aún no está en el historial.
+        const evento = registro?.evento ?? (actual ? estado.evento : null)
+        const tipoEvento = evento && eventoPorId(evento.id).tipo
+        const pendiente = evento !== null && evento.elegida === null
         const promedio =
           registro?.notas && registro.notas.reduce((a, b) => a + b, 0) / registro.notas.length
 
@@ -30,7 +34,14 @@ export function Calendario({ estado, vista, onVer }: Props) {
             <span className="dia">{semana}</span>
             <span className="tipo">{etiqueta}</span>
             <span className="marcas" aria-hidden="true">
-              {registro?.evento && <span className="con-evento">◆</span>}
+              {tipoEvento && (
+                <span
+                  className={`marca-evento ${tipoEvento} ${pendiente ? 'pendiente' : ''}`}
+                  title={`${TIPO_EVENTO[tipoEvento].nombre}${pendiente ? ', por resolver' : ''}`}
+                >
+                  {TIPO_EVENTO[tipoEvento].marca}
+                </span>
+              )}
               {registro?.perdida && <span className="perdida">✕</span>}
               {!registro?.perdida &&
                 registro?.decisiones?.map((d, i) => <i key={i} className={`punto ${d}`} />)}
@@ -55,7 +66,8 @@ export function Calendario({ estado, vista, onVer }: Props) {
           `Semana ${semana}`,
           parcial !== -1 && `parcial ${parcial + 1}`,
           registro.perdida && `perdida por ${registro.perdida}`,
-          registro.evento && `evento: ${eventoPorId(registro.evento.id).titulo}`,
+          registro.evento &&
+            `${TIPO_EVENTO[eventoPorId(registro.evento.id).tipo].nombre.toLowerCase()}: ${eventoPorId(registro.evento.id).titulo}`,
           `cerró con estrés ${registro.estres} %, zona ${ZONAS[zona]}`,
         ]
           .filter(Boolean)
@@ -86,7 +98,14 @@ export function LeyendaCalendario() {
           <i className={`punto ${d}`} aria-hidden="true" /> {DECISIONES_CORTAS[d]}
         </span>
       ))}
-      <span>◆ Hubo evento</span>
+      <span>
+        <span className="marca-evento bueno">{TIPO_EVENTO.bueno.marca}</span>{' '}
+        {TIPO_EVENTO.bueno.nombre}
+      </span>
+      <span>
+        <span className="marca-evento malo">{TIPO_EVENTO.malo.marca}</span>{' '}
+        {TIPO_EVENTO.malo.nombre}
+      </span>
       <span>Borde: zona de estrés al cerrar</span>
       <span>Pulsa una semana pasada para ver cómo fue</span>
     </p>

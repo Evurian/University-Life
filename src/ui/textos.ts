@@ -1,5 +1,6 @@
 import type { FinalId, OpcionCrisis } from '../core/simulacion.ts'
 import { BALANCE, type DecisionId, type DificultadId, type ZonaId } from '../data/balance.ts'
+import type { TipoEvento } from '../data/eventos.ts'
 
 // Nombres que ve el jugador. En el código y en REGLAS.md los cursos son "asignaturas",
 // los trabajos son "entregas" y tener los trabajos necesarios es la "regularidad".
@@ -68,6 +69,24 @@ export const CRISIS: Record<OpcionCrisis, { titulo: string; texto: string }> = {
     texto: 'La partida termina ahora. No se puede deshacer.',
   },
 }
+
+/** Tipo de evento con nombre y marca propios, para no depender solo del color. */
+export const TIPO_EVENTO: Record<TipoEvento, { nombre: string; marca: string }> = {
+  bueno: { nombre: 'Evento favorable', marca: '◆' },
+  malo: { nombre: 'Evento adverso', marca: '▲' },
+}
+
+/** Cómo rinden las horas de estudio con un multiplicador semanal, en el mismo texto en todas partes. */
+export const rendimientoHoras = (mult: number) =>
+  `las horas de estudio rinden ${conSigno(Math.round((mult - 1) * 100))} %`
+
+/** Exigencia de un curso según las horas que pide, comparadas con las de referencia. */
+export const exigencia = (horObjetivo: number) =>
+  horObjetivo > BALANCE.nota.horObjetivo
+    ? 'Exigente'
+    : horObjetivo < BALANCE.nota.horObjetivo
+      ? 'Ligero'
+      : 'Medio'
 
 /** Texto de un evento con el nombre del curso afectado. */
 export const textoEvento = (texto: string, curso: string) => texto.replaceAll('{curso}', curso)

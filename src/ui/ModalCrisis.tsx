@@ -1,16 +1,26 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Estado } from '../core/simulacion.ts'
 import { BALANCE } from '../data/balance.ts'
 import { useJuego } from '../store/juego.ts'
 import { CRISIS } from './textos.ts'
+import { useDialogo } from './useDialogo.ts'
 
 export function ModalCrisis({ estado }: { estado: Estado }) {
   const resolver = useJuego((s) => s.resolver)
   const [confirmando, setConfirmando] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  // Sin Escape: la crisis exige elegir una opción.
+  useDialogo(ref)
 
   return (
     <div className="fondo-modal">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-crisis">
+      <div
+        ref={ref}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-crisis"
+      >
         <h2 id="titulo-crisis">Crisis de estrés</h2>
         <p>
           Tu estrés llegó a {estado.estres} % en la semana {estado.semana}. Tienes que decidir cómo

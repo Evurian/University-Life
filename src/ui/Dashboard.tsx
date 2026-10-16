@@ -8,6 +8,7 @@ import { ModalEvento } from './ModalEvento.tsx'
 import { PanelAlumno } from './PanelAlumno.tsx'
 import { PanelDecision } from './PanelDecision.tsx'
 import { DetalleSemana, ResumenSemana } from './ResumenSemana.tsx'
+import { TIPO_EVENTO } from './textos.ts'
 
 function proximoParcial(semana: number): string {
   const indice = BALANCE.semanasParcial.findIndex((s) => s >= semana)
@@ -38,10 +39,19 @@ export function Dashboard({ estado }: { estado: Estado }) {
             {eventoResuelto && (
               <button
                 type="button"
-                className="ver-evento"
+                className={`ver-evento ${eventoPorId(estado.evento!.id).tipo}`}
+                aria-label={`Ver evento: ${eventoPorId(estado.evento!.id).titulo}`}
                 onClick={() => setEventoAbierto(estado.semana)}
               >
-                Ver evento: {eventoPorId(estado.evento!.id).titulo}
+                <span className="marca-evento" aria-hidden="true">
+                  {TIPO_EVENTO[eventoPorId(estado.evento!.id).tipo].marca}
+                </span>
+                <span>
+                  <small>
+                    {TIPO_EVENTO[eventoPorId(estado.evento!.id).tipo].nombre} de esta semana
+                  </small>
+                  {eventoPorId(estado.evento!.id).titulo}
+                </span>
               </button>
             )}
           </div>

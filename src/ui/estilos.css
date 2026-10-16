@@ -1,15 +1,18 @@
-/* Sistema visual de UniversityLife (Fase 2.5). Dirección: campus moderno con claridad de simulador. */
+/* Sistema visual de UniversityLife. Dirección: campus moderno con claridad de simulador.
+   Todo color, tamaño, espacio, radio y sombra sale de estas variables. */
 
 :root {
   /* Color: superficies y texto */
   --fondo: #f7f5ef;
   --panel: #ffffff;
   --texto: #23354d;
-  --tenue: #5a6b80;
+  --tenue: #4e5f75;
   --borde: #ddd8cc;
+  --borde-fuerte: #b9b2a3;
   --acento: #23354d;
   --acento-fuerte: #16243a;
   --acento-suave: #dce8f2;
+  --velo: rgb(22 36 58 / 60%);
 
   /* Color: zonas de estrés. Los rellenos tienen poco contraste; para texto se usan las variantes. */
   --verde: #78977b;
@@ -20,26 +23,35 @@
   --roja-texto: #b23b30;
   --aviso-fondo: #fbf1d8;
   --peligro-fondo: #fbe6e3;
+  --favorable-fondo: #e6efe6;
   --destello: #f3dfa6;
 
   /* Color: acciones */
   --intensivo: #23354d;
   --balanceada: #7a5fa8;
-  --salud: #5a6b80;
+  --salud: #4e5f75;
 
   /* Forma */
   --espacio: 16px;
+  --espacio-s: 8px;
+  --espacio-l: 24px;
   --radio: 14px;
   --radio-s: 9px;
+  --radio-pildora: 999px;
+  --objetivo-tactil: 44px;
   --sombra: 0 1px 2px rgb(35 53 77 / 6%), 0 4px 14px rgb(35 53 77 / 7%);
   --sombra-alta: 0 2px 4px rgb(35 53 77 / 8%), 0 10px 24px rgb(35 53 77 / 12%);
+  --anillo: 0 0 0 3px var(--acento-suave), 0 0 0 5px var(--acento);
+  --ancho-max: 1440px;
+  --ancho-lateral: 340px;
 
-  /* Tipografía */
+  /* Tipografía. --t-min es el tamaño más pequeño permitido en toda la interfaz (13 px). */
   --fuente: 'Inter Variable', system-ui, sans-serif;
-  --t-xs: 0.78rem;
-  --t-s: 0.88rem;
+  --t-min: 0.8125rem;
+  --t-xs: var(--t-min);
+  --t-s: 0.875rem;
   --t-m: 1rem;
-  --t-l: 1.15rem;
+  --t-l: 1.125rem;
   --t-xl: 1.5rem;
   --t-xxl: 2rem;
 
@@ -82,11 +94,11 @@ small {
   color: var(--tenue);
 }
 
-/* Botones */
+/* Botones. El hover genérico solo marca el borde; cada componente decide su fondo. */
 
 button {
   font: inherit;
-  min-height: 40px;
+  min-height: var(--objetivo-tactil);
   padding: 6px 14px;
   border: 1px solid var(--borde);
   border-radius: var(--radio-s);
@@ -103,11 +115,10 @@ button {
 
 button:hover:not(:disabled) {
   border-color: var(--acento);
-  background: var(--acento-suave);
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 button:focus-visible,
@@ -128,8 +139,8 @@ button.principal {
   color: #fff;
   font-size: var(--t-l);
   font-weight: 650;
-  padding: 11px 30px;
-  border-radius: 999px;
+  padding: 10px 30px;
+  border-radius: var(--radio-pildora);
 }
 
 button.principal:hover:not(:disabled) {
@@ -151,12 +162,12 @@ button.peligro {
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 1.7em;
-  height: 1.7em;
+  width: 1.75em;
+  height: 1.75em;
   border-radius: 50%;
   border: 2px solid var(--borde);
   color: var(--tenue);
-  font-size: 0.95rem;
+  font-size: var(--t-s);
   font-weight: 700;
   transition:
     background-color 0.3s,
@@ -178,7 +189,7 @@ button.peligro {
 /* Pantallas de inicio y final */
 
 .pantalla {
-  max-width: 800px;
+  max-width: 820px;
   margin: 0 auto;
   padding: calc(var(--espacio) * 3) var(--espacio);
   display: grid;
@@ -262,33 +273,39 @@ button.peligro {
   margin: 0;
 }
 
-/* Dashboard: cabecera arriba, estado a la izquierda, decisiones al centro */
+/* Pantalla semanal: cabecera arriba, estado a la izquierda (fijo al hacer scroll), decisión al centro */
 
 .dashboard {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
+  grid-template-columns: var(--ancho-lateral) minmax(0, 1fr);
   grid-template-areas:
     'cabecera cabecera'
     'estado centro';
-  gap: var(--espacio);
-  max-width: 1200px;
+  gap: var(--espacio) var(--espacio-l);
+  max-width: var(--ancho-max);
+  min-height: 100vh;
   margin: 0 auto;
-  padding: var(--espacio);
+  padding: var(--espacio) var(--espacio-l);
   align-items: start;
+  align-content: start;
 }
 
 .cabecera {
   grid-area: cabecera;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: calc(var(--espacio) * 1.5);
+  grid-template-columns: var(--ancho-lateral) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--espacio-l);
 }
 
 .estado {
   grid-area: estado;
+  position: sticky;
+  top: var(--espacio);
   display: grid;
   gap: var(--espacio);
+  max-height: calc(100vh - 2 * var(--espacio));
+  overflow-y: auto;
 }
 
 .centro {
@@ -297,18 +314,24 @@ button.peligro {
   gap: var(--espacio);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .dashboard {
     grid-template-columns: 1fr;
     grid-template-areas:
       'cabecera'
-      'centro'
-      'estado';
+      'estado'
+      'centro';
+    padding: var(--espacio);
   }
 
   .cabecera {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: var(--espacio-s);
+  }
+
+  .estado {
+    position: static;
+    max-height: none;
   }
 }
 
@@ -325,7 +348,35 @@ button.peligro {
 .proximo {
   margin: 2px 0 0;
   color: var(--tenue);
-  white-space: nowrap;
+}
+
+.ver-evento {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--espacio-s);
+  padding: 6px 16px 6px 12px;
+  border: 2px solid var(--verde-texto);
+  border-radius: var(--radio-pildora);
+  background: var(--favorable-fondo);
+  text-align: left;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.ver-evento.malo {
+  border-color: var(--amarilla-texto);
+  background: var(--aviso-fondo);
+}
+
+.ver-evento small {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: 500;
+}
+
+.ver-evento .marca-evento {
+  font-size: var(--t-l);
 }
 
 .calendario {
@@ -345,11 +396,11 @@ button.peligro {
   display: grid;
   justify-items: center;
   align-content: start;
-  gap: 1px;
+  gap: 2px;
   width: 100%;
   height: 100%;
-  min-height: 86px;
-  padding: 5px 2px 3px;
+  min-height: 92px;
+  padding: 6px 2px 4px;
   border: 1px solid var(--borde);
   border-bottom-width: 6px;
   border-radius: var(--radio-s);
@@ -359,7 +410,7 @@ button.peligro {
   transition:
     border-color 0.4s,
     background-color 0.4s,
-    transform 0.15s;
+    box-shadow 0.15s;
 }
 
 .calendario button.casilla {
@@ -368,8 +419,8 @@ button.peligro {
 }
 
 .calendario button.casilla:hover {
-  transform: translateY(-3px);
   background: var(--acento-suave);
+  box-shadow: var(--sombra-alta);
 }
 
 .calendario button.casilla[aria-pressed='true'] {
@@ -378,24 +429,24 @@ button.peligro {
 }
 
 .calendario .dia {
-  font-size: 1.05rem;
+  font-size: var(--t-l);
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .calendario .tipo {
-  font-size: 0.62rem;
+  font-size: var(--t-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
 .calendario .marcas {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2px;
-  min-height: 9px;
+  min-height: 12px;
   align-items: center;
 }
 
@@ -406,7 +457,7 @@ button.peligro {
 }
 
 .calendario .media {
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -428,21 +479,54 @@ button.peligro {
   border-bottom-color: var(--roja);
 }
 
+/* La semana en curso se distingue por color, borde y anillo; sin escalar para no pixelar el texto. */
 .calendario li.actual .casilla {
   border-color: var(--acento);
   background: var(--acento);
   color: #fff;
-  transform: scale(1.08);
-  box-shadow: var(--sombra-alta);
+  box-shadow: var(--anillo);
 }
 
 .leyenda-calendario {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: 6px 0 0;
+  gap: 4px 16px;
+  margin: var(--espacio-s) 0 0;
   font-size: var(--t-xs);
   color: var(--tenue);
+}
+
+@media (max-width: 700px) {
+  .calendario {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .calendario .casilla {
+    min-height: 72px;
+  }
+}
+
+/* Marcas de evento: forma distinta para favorable (◆) y adverso (▲), además del color */
+
+.marca-evento {
+  font-size: var(--t-s);
+  line-height: 1;
+}
+
+.marca-evento.bueno {
+  color: var(--verde-texto);
+}
+
+.marca-evento.malo {
+  color: var(--amarilla-texto);
+}
+
+.marca-evento.pendiente {
+  animation: latido-suave 1.4s ease-in-out infinite;
+}
+
+.calendario li.actual .marca-evento {
+  color: #fff;
 }
 
 /* Puntos e iconos que identifican cada acción */
@@ -511,17 +595,17 @@ button.peligro {
 .estres {
   display: flex;
   align-items: center;
-  gap: var(--espacio);
+  gap: var(--espacio-s);
 }
 
 .cerebro {
   flex: none;
-  width: 132px;
+  width: 190px;
   overflow: visible;
 }
 
 .cerebro .banda {
-  opacity: 0.28;
+  opacity: 0.35;
 }
 
 .cerebro .verde {
@@ -542,6 +626,11 @@ button.peligro {
     fill 0.6s ease;
 }
 
+.cerebro .limite-zona {
+  stroke: var(--panel);
+  stroke-width: 1.5;
+}
+
 .cerebro .contorno {
   fill: none;
   stroke: var(--texto);
@@ -554,19 +643,45 @@ button.peligro {
   stroke: var(--texto);
   stroke-width: 1.6;
   stroke-linecap: round;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .cerebro .linea-crisis {
-  stroke: var(--texto);
-  stroke-width: 1.5;
+  stroke: var(--roja-texto);
+  stroke-width: 1.8;
   stroke-dasharray: 4 3;
+}
+
+.cerebro .etiqueta-crisis {
+  fill: var(--roja-texto);
+  font-size: 11px;
+  font-weight: 750;
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 3px;
+}
+
+.cerebro .eje {
+  stroke: var(--tenue);
+  stroke-width: 1;
+}
+
+.cerebro .escala {
+  fill: var(--tenue);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cerebro .aguja-escala {
+  fill: var(--texto);
+  transition: transform 0.7s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
 .estres-lectura {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .estres-titulo {
@@ -574,8 +689,9 @@ button.peligro {
 }
 
 .estres-valor {
+  display: inline-block;
   white-space: nowrap;
-  font-size: 2.2rem;
+  font-size: var(--t-xxl);
   font-weight: 750;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -583,7 +699,6 @@ button.peligro {
 }
 
 .estres-cambio {
-  white-space: nowrap;
   font-size: var(--t-s);
   font-weight: 600;
 }
@@ -595,6 +710,11 @@ button.peligro {
   margin: 0;
   padding-top: var(--espacio);
   border-top: 1px solid var(--borde);
+}
+
+.ovr.vacio {
+  display: grid;
+  gap: 0;
 }
 
 .ovr-valor {
@@ -620,7 +740,7 @@ button.peligro {
 .leyenda {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 8px;
+  gap: var(--espacio-s);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -637,7 +757,7 @@ button.peligro {
 .leyenda strong {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--espacio-s);
 }
 
 .leyenda span {
@@ -652,8 +772,44 @@ button.peligro {
   padding-left: 1.2em;
 }
 
+.ayuda {
+  border-top: 1px solid var(--borde);
+  padding-top: var(--espacio);
+}
+
+/* El disparador se ve y se comporta como un botón, con chevron que gira al abrir. */
+.ayuda summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--objetivo-tactil);
+  padding: 6px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--panel);
+  font-weight: 650;
+  list-style: none;
+  cursor: pointer;
+}
+
+.ayuda summary::-webkit-details-marker {
+  display: none;
+}
+
+.ayuda summary:hover {
+  border-color: var(--acento);
+}
+
+.ayuda .chevron {
+  transition: transform 0.2s;
+}
+
+.ayuda[open] .chevron {
+  transform: rotate(180deg);
+}
+
 .ayuda .como-se-juega {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: var(--t-s);
 }
 
@@ -661,22 +817,21 @@ button.peligro {
   grid-template-columns: 1fr;
 }
 
-.ayuda summary {
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
+/* Panel de decisión */
 
-/* Decisiones */
+.panel-decision {
+  display: grid;
+  gap: var(--espacio);
+  padding-bottom: 0;
+  container: decision / inline-size;
+}
 
 .encabezado-panel {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px var(--espacio);
-  margin-bottom: var(--espacio);
+  gap: var(--espacio-s) var(--espacio);
 }
 
 .encabezado-panel h2 {
@@ -686,15 +841,15 @@ button.peligro {
 .selector-vista {
   display: flex;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--radio-pildora);
   background: var(--fondo);
 }
 
 .selector-vista button {
-  min-height: 30px;
-  padding: 2px 12px;
+  min-height: 38px;
+  padding: 2px 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radio-pildora);
   background: transparent;
   font-size: var(--t-s);
   color: var(--tenue);
@@ -707,6 +862,40 @@ button.peligro {
   box-shadow: var(--sombra);
 }
 
+/* Atajo: una caja propia que explica la rutina antes de usarlo */
+
+.atajo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--espacio-s) var(--espacio);
+  padding: 12px var(--espacio);
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio);
+}
+
+.atajo p {
+  margin: 2px 0 0;
+  font-size: var(--t-s);
+  color: var(--tenue);
+}
+
+.atajo button {
+  font-size: var(--t-s);
+}
+
+.atajo button:hover:not(:disabled) {
+  background: var(--acento-suave);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Fila de curso: la decisión domina; los datos la acompañan a la izquierda */
+
 .lista-cursos {
   display: grid;
   gap: 12px;
@@ -715,59 +904,58 @@ button.peligro {
 
 .curso {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 10px 16px;
-  padding: 14px;
+  gap: var(--espacio);
+  padding: var(--espacio);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--fondo);
 }
 
-.curso .nombre {
-  grid-area: nombre;
+/* Datos del curso en una franja sobre las cards: acompañan a la decisión sin competir con ella. */
+.curso-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px var(--espacio-l);
 }
 
-.curso .dato {
-  grid-area: nota;
+.metricas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px var(--espacio-l);
 }
 
-.curso .trabajos {
-  grid-area: trabajos;
-}
-
-.curso .cards {
-  grid-area: cards;
+.metrica {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  align-self: stretch;
+  gap: 2px;
 }
 
-/* Todos los cursos: los datos a la izquierda y las tres cards a la derecha, en una sola franja. */
-.lista-cursos .curso {
-  grid-template-columns: 100px minmax(0, 190px) minmax(0, 1fr);
-  grid-template-areas:
-    'nombre nombre cards'
-    'nota trabajos cards';
+.metrica-etiqueta {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--tenue);
 }
 
-/* Un curso cada vez: los datos arriba y las cards grandes debajo. */
-.curso.grande {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
-  grid-template-areas:
-    'nombre nota trabajos'
-    'cards cards cards';
+.metrica-valor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: var(--t-l);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Depende del ancho del panel, no de la ventana: si las cards no caben al lado, bajan. */
-@container cursos (max-width: 780px) {
-  .lista-cursos .curso {
-    grid-template-columns: 100px minmax(0, 1fr);
-    grid-template-areas:
-      'nombre nombre'
-      'nota trabajos'
-      'cards cards';
-  }
+.metrica small {
+  font-size: var(--t-xs);
+}
+
+.nuevo {
+  font-weight: 750;
+  color: var(--balanceada);
 }
 
 .nombre {
@@ -776,22 +964,10 @@ button.peligro {
   font-weight: 700;
 }
 
-.nombre small,
-.dato small {
+.nombre small {
   display: block;
+  font-size: var(--t-xs);
   font-weight: 400;
-}
-
-.dato {
-  display: grid;
-  gap: 2px;
-  font-size: var(--t-l);
-  font-variant-numeric: tabular-nums;
-}
-
-.dato .nuevo {
-  font-weight: 750;
-  color: var(--balanceada);
 }
 
 small.bien,
@@ -809,7 +985,7 @@ small.alerta {
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  border: 1.5px solid var(--borde);
+  border: 1.5px solid var(--borde-fuerte);
   background: var(--panel);
   transition:
     background-color 0.3s,
@@ -826,16 +1002,29 @@ small.alerta {
   border-color: var(--balanceada);
 }
 
+.curso .cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Si las cards no caben junto a los datos, bajan debajo; depende del ancho del panel. */
+@container cursos (max-width: 460px) {
+  .lista-cursos .curso .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Card de acción */
 
 .card-decision {
   position: relative;
-  min-width: 0;
   display: grid;
   align-content: start;
-  gap: 8px;
-  min-height: 0;
-  padding: 12px;
+  gap: 10px;
+  min-width: 0;
+  min-height: 96px;
+  padding: 14px;
   border: 2px solid var(--borde);
   border-radius: var(--radio-s);
   background: var(--panel);
@@ -845,7 +1034,6 @@ small.alerta {
 
 .card-decision:hover:not(:disabled) {
   border-color: var(--decision);
-  background: var(--panel);
   transform: translateY(-2px);
   box-shadow: var(--sombra-alta);
 }
@@ -859,8 +1047,9 @@ small.alerta {
 .card-titulo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--espacio-s);
   min-width: 0;
+  font-size: var(--t-m);
   font-weight: 650;
   line-height: 1.25;
 }
@@ -871,12 +1060,12 @@ small.alerta {
   right: -9px;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--decision);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: var(--t-xs);
   opacity: 0;
   transform: scale(0.4);
   transition:
@@ -891,7 +1080,7 @@ small.alerta {
 
 .card-detalle {
   display: grid;
-  gap: 8px;
+  gap: var(--espacio-s);
 }
 
 .intencion {
@@ -906,13 +1095,12 @@ small.alerta {
 }
 
 .efectos span {
-  padding: 1px 8px;
-  border-radius: 999px;
+  padding: 2px 9px;
+  border-radius: var(--radio-pildora);
   background: var(--fondo);
   font-size: var(--t-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .efectos .sube {
@@ -954,6 +1142,7 @@ small.alerta {
 }
 
 .pasos-cursos small {
+  font-size: var(--t-xs);
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -970,6 +1159,7 @@ small.alerta {
 }
 
 .curso.grande {
+  grid-template-columns: 1fr;
   padding: 18px;
   animation: entrar 0.25s ease-out;
 }
@@ -1006,43 +1196,13 @@ small.alerta {
   font-weight: 600;
 }
 
-.atajo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0 calc(var(--espacio) * 1.5);
-  padding: 0 4px;
-  color: var(--tenue);
-}
-
-.atajo .nombre {
-  font-size: var(--t-m);
-}
-
-.atajo button {
-  min-height: 34px;
-  font-size: var(--t-s);
-}
-
-.botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 @media (max-width: 700px) {
-  .curso.grande {
-    grid-template-columns: 100px minmax(0, 1fr);
-    grid-template-areas:
-      'nombre nombre'
-      'nota trabajos'
-      'cards cards';
+  .curso .cards {
+    grid-template-columns: 1fr;
   }
 
-  .curso .cards,
-  .atajo {
-    grid-template-columns: 1fr;
+  .card-decision {
+    min-height: 0;
   }
 
   .pasos-cursos small {
@@ -1050,15 +1210,35 @@ small.alerta {
   }
 }
 
+/* Barra de confirmación: fija abajo mientras se decide */
+
+.barra-confirmar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--espacio-s);
+  margin: 0 calc(var(--espacio) * -1.25);
+  padding: 12px calc(var(--espacio) * 1.25);
+  border-top: 1px solid var(--borde);
+  border-radius: 0 0 var(--radio) var(--radio);
+  background: var(--panel);
+  box-shadow: 0 -6px 16px rgb(35 53 77 / 8%);
+}
+
 .cierre {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--espacio);
+  gap: var(--espacio-s) var(--espacio);
+}
+
+.cierre h2 {
+  margin: 0;
 }
 
 .previsto {
+  flex: 1;
   margin: 0;
   font-size: var(--t-l);
 }
@@ -1067,19 +1247,30 @@ small.alerta {
   border-left: 4px solid var(--amarilla);
   border-radius: var(--radio-s);
   background: var(--aviso-fondo);
-  padding: 8px 12px;
-  margin: 0 0 var(--espacio);
+  padding: var(--espacio-s) 12px;
+  margin: 0;
   animation: entrar 0.3s ease-out;
-}
-
-.cierre + .aviso,
-.aviso + .aviso {
-  margin: var(--espacio) 0 0;
 }
 
 .aviso.peligro {
   border-left-color: var(--roja);
   background: var(--peligro-fondo);
+}
+
+/* El atajo y la barra de confirmación se apilan según el ancho del panel, no el de la ventana. */
+@container decision (max-width: 760px) {
+  .atajo {
+    grid-template-columns: 1fr;
+  }
+
+  .barra-confirmar .cierre {
+    display: grid;
+    gap: 6px;
+  }
+
+  .barra-confirmar .cierre .principal {
+    width: 100%;
+  }
 }
 
 /* Qué pasó y detalle de una semana */
@@ -1094,24 +1285,28 @@ small.alerta {
 }
 
 .cerrar {
-  min-height: 32px;
   font-size: var(--t-s);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .decisiones-semana li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--espacio-s);
 }
 
 .detalle p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--espacio-s);
+}
+
+.linea-evento {
+  display: block;
+  margin-top: 4px;
 }
 
 .resumen ul {
   display: grid;
-  gap: 8px;
+  gap: var(--espacio-s);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1120,7 +1315,7 @@ small.alerta {
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 8px 0 0;
+  margin: var(--espacio-s) 0 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1144,20 +1339,22 @@ thead th {
   color: var(--tenue);
 }
 
-/* Crisis */
+/* Modales: crisis y evento */
 
 .fondo-modal {
   position: fixed;
   inset: 0;
+  z-index: 10;
   display: grid;
   place-items: center;
   padding: var(--espacio);
-  background: rgb(22 36 58 / 60%);
+  overflow-y: auto;
+  background: var(--velo);
   animation: aparecer 0.25s ease-out;
 }
 
 .modal {
-  max-width: 540px;
+  width: min(560px, 100%);
   background: var(--panel);
   border-radius: var(--radio);
   border-top: 6px solid var(--roja);
@@ -1180,8 +1377,6 @@ thead th {
   color: var(--tenue);
 }
 
-/* Evento de la semana */
-
 .modal.evento {
   border-top-color: var(--verde);
 }
@@ -1192,29 +1387,45 @@ thead th {
 
 .modal.evento h2 {
   font-size: var(--t-xl);
-  margin-bottom: 8px;
+  margin-bottom: var(--espacio-s);
+}
+
+.modal.evento > p {
+  margin: 0 0 12px;
 }
 
 .antetitulo {
   margin: 0 0 4px;
   font-size: var(--t-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--tenue);
+}
+
+.contexto-evento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0 0 var(--espacio);
+  padding: 10px 12px;
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: var(--t-s);
+  list-style: none;
 }
 
 .opciones-evento {
   display: grid;
   gap: 10px;
   list-style: none;
-  margin: var(--espacio) 0;
+  margin: 0 0 12px;
   padding: 0;
 }
 
 .opcion-evento {
   display: grid;
-  gap: 8px;
+  gap: var(--espacio-s);
   width: 100%;
   padding: 14px;
   border: 2px solid var(--borde);
@@ -1225,7 +1436,6 @@ thead th {
 }
 
 button.opcion-evento:hover:not(:disabled) {
-  border-color: var(--acento);
   transform: translateY(-2px);
   box-shadow: var(--sombra-alta);
 }
@@ -1235,23 +1445,35 @@ button.opcion-evento:hover:not(:disabled) {
   background: var(--acento-suave);
 }
 
+.opcion-evento.elegida .efectos span {
+  background: var(--panel);
+}
+
 .opcion-evento.descartada {
-  opacity: 0.55;
+  border-style: dashed;
   box-shadow: none;
 }
 
-.ver-evento {
-  min-height: 30px;
-  margin-top: 6px;
-  padding: 2px 12px;
-  border-radius: 999px;
-  font-size: var(--t-s);
-  white-space: nowrap;
+.estado-opcion {
+  font-weight: 700;
 }
 
-.calendario .con-evento {
-  font-size: 0.6rem;
-  line-height: 1;
+.opcion-evento.elegida .estado-opcion {
+  color: var(--texto);
+}
+
+.pie-modal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-s) var(--espacio);
+  margin-top: var(--espacio);
+}
+
+.pie-modal .nota {
+  flex: 1;
+  min-width: 180px;
 }
 
 /* Animaciones */
@@ -1281,6 +1503,12 @@ button.opcion-evento:hover:not(:disabled) {
 
   50% {
     box-shadow: 0 0 0 9px rgb(35 53 77 / 0%);
+  }
+}
+
+@keyframes latido-suave {
+  50% {
+    opacity: 0.35;
   }
 }
 
