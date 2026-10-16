@@ -1,0 +1,10 @@
+# Cabeceras para hosts estáticos (Cloudflare Pages y Netlify leen este fichero
+# desde el directorio de publicación, por eso vive en public/).
+# Los assets llevan hash en el nombre, así que son inmutables; el documento
+# raíz debe revalidarse para que un despliegue nuevo llegue enseguida.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
